@@ -18,8 +18,8 @@ def string_to_array(input_str):
     return result
 
 
-def array_to_string(input_array, brackets = 0):
-    array_str = ','.join(str(int(e)) for e in input_array)
+def array_to_string(input_array, brackets=0):
+    array_str = ','.join(str(float(e)) for e in input_array)
     if brackets == 1:
         array_str = '[{0}]'.format(array_str)
     return array_str
