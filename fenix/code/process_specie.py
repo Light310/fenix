@@ -1,18 +1,19 @@
 from datetime import datetime
 import os
 from common.BasicConfig import BasicConfig
+from fenix.code.movement import execute_sequence
 
 cfg = BasicConfig()
-start_position = cfg.start_position
+start_position = cfg.start_position[:]
 path = cfg.workdir
 
 
 class SpeciesDir:
-    def __init__(self):
+    def __init__(self, specie):
         # make a dir, chmod and so on
-        self.path = ''
-        dttm = datetime.now().strftime("%Y%m%d%H%M%S")
-        os.mkdir(path+dttm)
+        # dttm = datetime.now().strftime("%Y%m%d%H%M%S")
+        self.specie_path = os.path.join(path, 'result_{0}'.format(specie))
+        os.mkdir(self.specie_path)
 
     def archive(self):
         # archive self
@@ -22,23 +23,6 @@ class SpeciesDir:
         # send self to nexus
         self.archive()
         pass
-
-
-# connects to gyro accel and returns its data
-# mb later it will be done not so often
-def get_gyro_accel_data():
-    gyro_accel_data = 0
-    return gyro_accel_data
-
-
-# move to position
-# reads current position and starts moving from one position to another, until last one is reached
-# if logging = 1, stores data in a log after each move
-def execute_sequence(sequence, logging = 0):
-    if logging == 1:
-        gyro_accel_data = get_gyro_accel_data()
-        # write down servos and gyro accel data
-    pass
 
 
 # reads the next specie for processing
@@ -53,9 +37,9 @@ def camera_shot(name):
     pass
 
 
-def process_specie():
+def process_specie(specie):
     execute_sequence(start_position)
-    specie = read_next_specie()
+    #specie = read_next_specie()
     specie_dir = SpeciesDir()
 
     camera_shot(specie_dir.path)
@@ -65,5 +49,11 @@ def process_specie():
     specie_dir.send_to_nexus()
 
 
-def __main__():
-    process_specie()
+process_specie()
+
+"""
+'specie_20181028224456'
+'specie_20181028224457'
+'specie_20181028224458'
+'specie_20181028224459'
+"""
