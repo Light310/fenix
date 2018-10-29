@@ -2,6 +2,8 @@ from datetime import datetime
 import os
 from common.BasicConfig import BasicConfig
 from fenix.code.movement import execute_sequence
+#from fenix.code.pi_camera import camera_shot
+from fenix.code.pi_cam_dummy import camera_shot
 
 cfg = BasicConfig()
 start_position = cfg.start_position[:]
@@ -25,31 +27,17 @@ class SpeciesDir:
         pass
 
 
-# reads the next specie for processing
-# returns a 2d-array
-def read_next_specie():
-    specie = [[0,0], [0,0]]
-    return specie
-
-
-# makes a camera shot
-def camera_shot(name):
-    pass
-
-
 def process_specie(specie):
-    execute_sequence(start_position)
+    execute_sequence()
     #specie = read_next_specie()
-    specie_dir = SpeciesDir()
+    specie_dir = SpeciesDir(specie)
 
-    camera_shot(specie_dir.path)
-    execute_sequence(specie, logging=1)
-    camera_shot(specie_dir.path)
-
-    specie_dir.send_to_nexus()
+    camera_shot(os.path.join(specie_dir.specie_path, 'before_image.jpg'))
+    execute_sequence(specie=specie, path=specie_dir.specie_path, logging=1)
+    camera_shot(os.path.join(specie_dir.specie_path, 'after_image.jpg'))
 
 
-process_specie()
+process_specie('specie_20181028224456')
 
 """
 'specie_20181028224456'

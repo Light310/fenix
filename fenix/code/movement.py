@@ -40,8 +40,12 @@ def max_diff(array1, array2):
     return md
 
 
-def execute_sequence(specie):
-    sequence = read_specie(specie)
+def execute_sequence(specie=None, path=None, logging=0):
+    if specie is None:
+        sequence = []
+        sequence.append(cfg.start_position[:])
+    else:
+        sequence = read_specie(specie)
     current_position = read_servos()[:]
     steps_performed = 0
     initial_position = current_position[:]
@@ -84,7 +88,8 @@ def execute_sequence(specie):
 
         write_servos(current_position)
         time.sleep(sleep_time)
-        print_data_to_file(now_str(), current_position[:], get_ga_value()[:], specie)
+        if logging == 1:
+            print_data_to_file(now_str(), current_position[:], get_ga_value()[:], path, specie)
 
 
 
@@ -124,8 +129,8 @@ def read_specie(specie):
     return sequence
 
 
-def print_data_to_file(dttm, ga_data, servo_data, specie):
-    file = os.path.join(cfg.data_dir, 'data_{0}.csv'.format(specie))
+def print_data_to_file(dttm, ga_data, servo_data, path, specie):
+    file = os.path.join(path, 'data_{0}.csv'.format(specie))
     with open(file, 'a') as csv_file:
         csv_file.write('{0}:{1}:{2}\n'.format(dttm, array_to_string(servo_data), array_to_string(ga_data)))
 
