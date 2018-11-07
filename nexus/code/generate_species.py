@@ -21,13 +21,17 @@ class Specie:
 
         for i in range(16):
             rnd = random.randint(1, 100)
+            if (i + 1)%4 == 0:
+                value = 30
+            else:
+                value = 15
             if rnd > 85:
-                mutation[i] = -1
+                mutation[i] = -1 * value
             elif rnd > 70:
-                mutation[i] = 1
+                mutation[i] = value
 
         for i in range(len(self.basic_position)):
-            mutated_position[i] = self.basic_position[i] + 30*mutation[i]
+            mutated_position[i] = self.basic_position[i] + mutation[i]
 
         return mutated_position
 
