@@ -33,7 +33,7 @@ calibration_dict = [
 
 
 def calibrate(i, input_value):
-    return round(calibration_dict[i][0] + (input_value * calibration_dict[i][1] / 90), 3)
+    return round(calibration_dict[i][0] + (input_value * calibration_dict[i][1]*1.0 / 90), 3)
 
 
 output_seq = [None] * 16
@@ -43,7 +43,7 @@ NUM_GPIO = 32
 MIN_WIDTH = 500
 MAX_WIDTH = 2500
 MAX_DIFF = 270  # angle 0 to 270
-SLEEP_S = 0.1  # 10 ms for sleeping
+SLEEP_S = 0.06  # 6 ms for sleeping
 
 step = [0] * NUM_GPIO
 width = [0] * NUM_GPIO
@@ -64,7 +64,7 @@ while True:
     # for i in range (1, 2):
     try:
         try:
-            with open('/nexus/files/servos.txt') as f:
+            with open('/nexus/fenix/wrk/servos.txt') as f:
                 servo_data = [int(s) for s in f.read().split(',')]
             f.closed
 

@@ -1,9 +1,12 @@
 from datetime import datetime
 import os
+import sys
+sys.path.append('/nexus/fenix/')
+#sys.path.append('/nexus/fenix/fenix/code/')
 from common.BasicConfig import BasicConfig
 from fenix.code.movement import execute_sequence
-#from fenix.code.pi_camera import camera_shot
-from fenix.code.pi_cam_dummy import camera_shot
+from fenix.code.pi_camera import camera_shot
+#from fenix.code.pi_cam_dummy import camera_shot
 
 cfg = BasicConfig()
 start_position = cfg.start_position[:]
@@ -35,13 +38,12 @@ def process_specie(specie):
     camera_shot(os.path.join(specie_dir.specie_path, 'before_image.jpg'))
     execute_sequence(specie=specie, path=specie_dir.specie_path, logging=1)
     camera_shot(os.path.join(specie_dir.specie_path, 'after_image.jpg'))
+    execute_sequence()
 
 
-process_specie('specie_20181028224456')
+process_specie('specie_20181030191645')
 
 """
-'specie_20181028224456'
-'specie_20181028224457'
-'specie_20181028224458'
-'specie_20181028224459'
+'specie_20181030191641'
+'specie_20181029222946'
 """
