@@ -132,7 +132,7 @@ def read_specie(specie):
 def print_data_to_file(dttm, ga_data, servo_data, path, specie):
     file = os.path.join(path, 'data_{0}.csv'.format(specie))
     with open(file, 'a') as csv_file:
-        csv_file.write('{0}:{1}:{2}\n'.format(dttm, array_to_string(servo_data), array_to_string(ga_data)))
+        csv_file.write('{0}|{1}|{2}\n'.format(dttm, array_to_string(servo_data), array_to_string(ga_data)))
 
 
 #execute_sequence('specie_20181028224456')
