@@ -1,4 +1,6 @@
 import random
+import sys
+sys.path.append('/nexus/fenix/')
 from common.BasicConfig import BasicConfig
 from datetime import datetime
 import os

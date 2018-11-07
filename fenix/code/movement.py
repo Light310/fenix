@@ -3,8 +3,8 @@ import os
 import math
 from common.BasicConfig import BasicConfig
 from common.utils import *
-#from fenix.code.gyro_accel import get_ga_value
-from fenix.code.ga_dummy import get_ga_value
+from fenix.code.gyro_accel import get_ga_value
+#from fenix.code.ga_dummy import get_ga_value
 from datetime import datetime
 import csv
 
