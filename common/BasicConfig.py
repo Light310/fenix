@@ -13,7 +13,11 @@ class BasicConfig:
 
     @property
     def species_dir(self):
-        return os.path.join(self.workdir, self.config['Dir']['species_dir'])
+        return os.path.join(self.workdir, 'species')
+
+    @property
+    def results_dir(self):
+        return os.path.join(self.workdir, 'results')
 
     @property
     def data_dir(self):

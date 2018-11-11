@@ -1,23 +1,28 @@
 from datetime import datetime
 import os
 import sys
+import time
+
 sys.path.append('/nexus/fenix/')
 #sys.path.append('/nexus/fenix/fenix/code/')
 from common.BasicConfig import BasicConfig
 from fenix.code.movement import execute_sequence
 from fenix.code.pi_camera import camera_shot
+from fenix.code.process_dirs import get_next_specie
 #from fenix.code.pi_cam_dummy import camera_shot
 
 cfg = BasicConfig()
 start_position = cfg.start_position[:]
-path = cfg.workdir
+#basic_path = cfg.workdir
+results_path = cfg.results_dir
+species_path = cfg.species_dir
 
 
 class SpeciesDir:
     def __init__(self, specie):
         # make a dir, chmod and so on
         # dttm = datetime.now().strftime("%Y%m%d%H%M%S")
-        self.specie_path = os.path.join(path, 'result_{0}'.format(specie))
+        self.specie_path = os.path.join(results_path, 'result_{0}'.format(specie))
         os.mkdir(self.specie_path)
 
     def archive(self):
@@ -41,9 +46,6 @@ def process_specie(specie):
     execute_sequence()
 
 
-process_specie('specie_20181030191645')
-
-"""
-'specie_20181030191641'
-'specie_20181029222946'
-"""
+for i in range(5):
+    process_specie(get_next_specie())
+    time.sleep(3)

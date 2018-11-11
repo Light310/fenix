@@ -15,6 +15,8 @@ step_divider = 1
 
 cfg = BasicConfig()
 servos_file = cfg.servos_file
+results_path = cfg.results_dir
+species_path = cfg.species_dir
 
 
 def isclose(x, y):
@@ -115,7 +117,7 @@ def read_servos():
 
 def read_specie(specie):
     sequence = []
-    with open(os.path.join(cfg.species_dir, specie), 'r') as f:
+    with open(os.path.join(species_path, specie), 'r') as f:
         content = f.readlines()
     content = [x.strip() for x in content]
     for feature in content:
