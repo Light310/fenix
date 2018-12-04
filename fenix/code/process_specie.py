@@ -46,6 +46,6 @@ def process_specie(specie):
     execute_sequence()
 
 
-for i in range(5):
+for i in range(11):
     process_specie(get_next_specie())
     time.sleep(3)

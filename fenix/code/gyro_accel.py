@@ -59,6 +59,7 @@ def get_ga_value():
         beschleunigung_xout = read_word_2c(0x3b)
         beschleunigung_yout = read_word_2c(0x3d)
         beschleunigung_zout = read_word_2c(0x3f)
+        print('[{0},{1},{2}]'.format(beschleunigung_xout, beschleunigung_yout, beschleunigung_zout)) 
 
         beschleunigung_xout_skaliert = beschleunigung_xout / 16384.0
         beschleunigung_yout_skaliert = beschleunigung_yout / 16384.0
