@@ -235,8 +235,17 @@ def get_angles_distance(angles1, angles2):
 
 class LinearFunc:
     def __init__(self, point1, point2):
-        self.k = (point2.y - point1.y) / (point2.x - point1.x)
-        self.b = (point2.x * point1.y - point1.x * point2.y) / (point2.x - point1.x)
+        delta_x = (point2.x - point1.x)
+        if delta_x == 0:
+            delta_x = 0.00001
+        self.k = (point2.y - point1.y) / delta_x
+        self.b = (point2.x * point1.y - point1.x * point2.y) / delta_x
+
+    def get_y(self, x):
+        return self.k * x + self.b
+
+    def get_x(self, y):
+        return (y - self.b) / self.k
 
 def calculate_intersection(func1, func2):
     x = (func1.b - func2.b) / (func2.k - func1.k)
@@ -290,7 +299,7 @@ class log_movement:
 
         mass_center = self.calculate_mass_center()
         wm1 = Point(mass_center[0], mass_center[1], self.Leg1.O.z)
-        wm2 = Point(mass_center[0], mass_center[1], -10)
+        wm2 = Point(mass_center[0], mass_center[1], self.ground_z)
         self.line_mass_weight_history[0].append(Line(wm1, wm2).convert_to_arr())
 
         legs_center = self.calculate_basement_points()
@@ -326,8 +335,31 @@ class log_movement:
         self.basement_lines_history[6].append(Line(LM_34, legs_center).convert_to_arr())
         self.basement_lines_history[7].append(Line(LM_14, legs_center).convert_to_arr())
 
+        unsupporting_leg = self.calculate_unsupporting_leg(mass_center, legs_center, LM_12, LM_23, LM_34, LM_14)
+        unsupporting_point_1 = unsupporting_leg.D
+        unsupporting_point_2 = Point(unsupporting_leg.D.x, unsupporting_leg.D.y, unsupporting_leg.D.z + 10)
+        self.unsupporting_leg_lines_history[0].append(Line(unsupporting_point_1, unsupporting_point_2).convert_to_arr())
+
         self.save_angles()
-        
+
+    # LM - legs middle point, LM_12 - middle of legs 1 and 2
+    # ALL projected to self.ground_z
+    def calculate_unsupporting_leg(self, mass_center_xy, LM, LM_12, LM_23, LM_34, LM_14):
+        LF_12 = LinearFunc(LM, LM_12)
+        LF_23 = LinearFunc(LM, LM_23)
+        LF_34 = LinearFunc(LM, LM_34)
+        LF_14 = LinearFunc(LM, LM_14)
+
+        x, y = mass_center_xy[0], mass_center_xy[1]
+        if LF_14.get_x(y) <= x and LF_12.get_y(x) <= y:
+            return self.Leg3
+        if LF_23.get_x(y) <= x and LF_12.get_y(x) > y:
+            return self.Leg4
+        if LF_23.get_x(y) > x and LF_34.get_y(x) > y:
+            return self.Leg1
+        if LF_14.get_x(y) > x and LF_34.get_y(x) <= y:
+            return self.Leg2
+
 
 
     def body_movement(self, delta_x, delta_y, delta_z, leg_up=None, leg_up_delta=[0, 0, 0]):
@@ -415,6 +447,7 @@ class log_movement:
         self._lines_history.extend(self.Leg4.lines_history)
         self._lines_history.extend(self.line_mass_weight_history)
         self._lines_history.extend(self.basement_lines_history)
+        self._lines_history.extend(self.unsupporting_leg_lines_history)
         return self._lines_history
 
     # LM - legs middle point, LM12 - middle point between legs 1 and 2, and so on
@@ -468,12 +501,15 @@ Leg4 = Leg("Leg4", O4, D4, angle_to_rad(30), angle_to_rad(-30), angle_to_rad(-45
 lm = log_movement(Leg1, Leg2, Leg3, Leg4)
 
 m = 8
-lm.body_movement(m, m, -3)
-lm.body_movement(-m, -m, 3)
+lm.body_movement(m, m, 0)
+lm.body_movement(-2*m, 0, 0)
+lm.body_movement(0, -2*m, 0)
+lm.body_movement(2*m, 0, 0)
+lm.body_movement(-m, m, 0)
 lm.leg_movement(leg1_delta=[0, 0, 5])
-lm.body_movement(-5, -5, 5, leg_up=lm.Leg1, leg_up_delta=[10, 10, 0])
+lm.body_movement(-5, -5, 5, leg_up=lm.Leg1, leg_up_delta=[10, 0, 0])
 # Вот тут 3-я лапа почему-то смещает D на 0.9!!!
-lm.body_movement(5, 5, -5, leg_up=lm.Leg1, leg_up_delta=[-10, -10, 0])
+lm.body_movement(5, 5, -5, leg_up=lm.Leg1, leg_up_delta=[-10, 0, 0])
 lm.leg_movement(leg1_delta=[0, 0, -5])
 
 #for item in lm.angles_history:

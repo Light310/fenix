@@ -14,7 +14,11 @@ def animate(lines_data):
         # Создаём объект, пока ничего не отображающий
         data = lines_data[i]
         # 0 - 15 : legs. 16 - 19 : body. 20 : mass center. 21 - 28 : basement projection, 29 : unsupporting leg
-        if i > 20 and i <= 28:
+        if i == 29:
+            clr = 'blue'
+            lnstl = '--'
+            alp = 1.0
+        elif i > 20 and i <= 28:
             clr = 'blue'
             lnstl = '--'
             alp = 0.2
