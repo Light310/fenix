@@ -2,6 +2,7 @@ import configparser
 import os
 from definitions import ROOT_DIR
 
+
 class BasicConfig:
     def __init__(self):
         self.config = configparser.ConfigParser()

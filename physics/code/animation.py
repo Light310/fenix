@@ -13,18 +13,26 @@ def animate(lines_data):
     for i in range(len(lines_data)):
         # Создаём объект, пока ничего не отображающий
         data = lines_data[i]
-        if i == 20:
+        # 0 - 15 : legs. 16 - 19 : body. 20 : mass center. 21 - 28 : basement projection, 29 : unsupporting leg
+        if i > 20 and i <= 28:
+            clr = 'blue'
+            lnstl = '--'
+            alp = 0.2
+        elif i == 20:
             clr = 'red'
             lnstl = '--'
+            alp = 0.7
         else:
             clr = 'green'
             lnstl = '-'
+            alp = 1.0
 
         line, = ax.plot(data[0][0],
                         data[0][1],
                         data[0][2],
                         linestyle=lnstl,
-                        color=clr)
+                        color=clr,
+                        alpha=alp)
         lines_array.append(line)
 
     # Setting the axes properties

@@ -1,4 +1,5 @@
 from datetime import datetime
+from math import pi
 
 
 def now_str():
@@ -23,3 +24,11 @@ def array_to_string(input_array, brackets=0):
     if brackets == 1:
         array_str = '[{0}]'.format(array_str)
     return array_str
+
+
+def angle_to_rad(angle):
+    return angle * pi / 180
+
+
+def rad_to_angle(rad):
+    return rad * 180/pi

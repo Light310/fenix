@@ -3,15 +3,7 @@ import sys
 from math import pi, sin, cos
 
 from physics.code.animation import animate
-
-
-def angle_to_rad(angle):
-    return angle * pi / 180
-
-
-def rad_to_angle(rad):
-    return rad * 180/pi
-
+from common.utils import angle_to_rad, rad_to_angle
 
 a = 10.5
 b = 5.5
@@ -241,27 +233,102 @@ def get_angles_distance(angles1, angles2):
                      1.5 * (angles1[2] - angles2[2]) ** 2)
 
 
+class LinearFunc:
+    def __init__(self, point1, point2):
+        self.k = (point2.y - point1.y) / (point2.x - point1.x)
+        self.b = (point2.x * point1.y - point1.x * point2.y) / (point2.x - point1.x)
+
+def calculate_intersection(func1, func2):
+    x = (func1.b - func2.b) / (func2.k - func1.k)
+    y = func1.k*x + func1.b
+    return [x, y]
+
 class log_movement:
     def __init__(self, Leg1, Leg2, Leg3, Leg4):
+        self.step = 0.5
+        self.ground_z = -10
+
         self._lines_history = []
         self.body_lines_history = [[], [], [], []]
         self.line_mass_weight_history = [[]]
+        self.basement_lines_history = [[], [], [], [], [], [], [], []]
+        self.unsupporting_leg_lines_history = [[]]
+        self.angles_history = []
         self.Leg1 = Leg1
         self.Leg2 = Leg2
         self.Leg3 = Leg3
         self.Leg4 = Leg4
         self.body_points_movement()
-        self.step = 0.5
+
+    # angles are : gamma1, beta1, alpha1, tetta1, gamma2, beta2, alpha2, tetta2 ...
+    # for leg1 tetta = 45 means 0 for servo
+    # leg2 tetta = -45, leg3 tetta = -135, leg4 tetta = 135
+    def save_angles(self):
+        position = []
+        for leg in [self.Leg1, self.Leg2, self.Leg3, self.Leg4]:
+            position.append(round(rad_to_angle(leg.gamma), 2))
+            position.append(round(rad_to_angle(leg.beta), 2))
+            position.append(round(rad_to_angle(leg.alpha), 2))
+            tetta = rad_to_angle(leg.tetta)
+            if leg == self.Leg1:
+                tetta -= 45
+            if leg == self.Leg2:
+                tetta += 45
+            if leg == self.Leg3:
+                tetta += 135
+            if leg == self.Leg4:
+                tetta -= 135
+            tetta = round(tetta, 2)
+            position.append(tetta)
+        self.angles_history.append(position)
 
     def body_points_movement(self):
         self.body_lines_history[0].append(Line(self.Leg1.O, self.Leg2.O).convert_to_arr())
         self.body_lines_history[1].append(Line(self.Leg2.O, self.Leg3.O).convert_to_arr())
         self.body_lines_history[2].append(Line(self.Leg3.O, self.Leg4.O).convert_to_arr())
         self.body_lines_history[3].append(Line(self.Leg4.O, self.Leg1.O).convert_to_arr())
+
         mass_center = self.calculate_mass_center()
         wm1 = Point(mass_center[0], mass_center[1], self.Leg1.O.z)
         wm2 = Point(mass_center[0], mass_center[1], -10)
         self.line_mass_weight_history[0].append(Line(wm1, wm2).convert_to_arr())
+
+        legs_center = self.calculate_basement_points()
+        # LM_12 - middle of line between legs 1 and 2
+        LM_12 = Point((self.Leg1.D.x + self.Leg2.D.x) / 2,
+                      (self.Leg1.D.y + self.Leg2.D.y) / 2,
+                      self.ground_z)
+        LM_23 = Point((self.Leg2.D.x + self.Leg3.D.x) / 2,
+                      (self.Leg2.D.y + self.Leg3.D.y) / 2,
+                      self.ground_z)
+        LM_34 = Point((self.Leg3.D.x + self.Leg4.D.x) / 2,
+                      (self.Leg3.D.y + self.Leg4.D.y) / 2,
+                      self.ground_z)
+        LM_14 = Point((self.Leg1.D.x + self.Leg4.D.x) / 2,
+                      (self.Leg1.D.y + self.Leg4.D.y) / 2,
+                      self.ground_z)
+
+        leg1_D_projection = Point(self.Leg1.D.x, self.Leg1.D.y, self.ground_z)
+        leg2_D_projection = Point(self.Leg2.D.x, self.Leg2.D.y, self.ground_z)
+        leg3_D_projection = Point(self.Leg3.D.x, self.Leg3.D.y, self.ground_z)
+        leg4_D_projection = Point(self.Leg4.D.x, self.Leg4.D.y, self.ground_z)
+
+        self.basement_lines_history[0].append(Line(leg1_D_projection, leg2_D_projection).convert_to_arr())
+        self.basement_lines_history[1].append(Line(leg2_D_projection, leg3_D_projection).convert_to_arr())
+        self.basement_lines_history[2].append(Line(leg3_D_projection, leg4_D_projection).convert_to_arr())
+        self.basement_lines_history[3].append(Line(leg1_D_projection, leg4_D_projection).convert_to_arr())
+
+        #self.basement_lines_history[4].append(Line(leg1_D_projection, leg3_D_projection).convert_to_arr())
+        #self.basement_lines_history[5].append(Line(leg2_D_projection, leg4_D_projection).convert_to_arr())
+
+        self.basement_lines_history[4].append(Line(LM_12, legs_center).convert_to_arr())
+        self.basement_lines_history[5].append(Line(LM_23, legs_center).convert_to_arr())
+        self.basement_lines_history[6].append(Line(LM_34, legs_center).convert_to_arr())
+        self.basement_lines_history[7].append(Line(LM_14, legs_center).convert_to_arr())
+
+        self.save_angles()
+        
+
 
     def body_movement(self, delta_x, delta_y, delta_z, leg_up=None, leg_up_delta=[0, 0, 0]):
         max_delta = max(abs(delta_x), abs(delta_y), abs(delta_z),
@@ -347,7 +414,17 @@ class log_movement:
         self._lines_history.extend(self.Leg3.lines_history)
         self._lines_history.extend(self.Leg4.lines_history)
         self._lines_history.extend(self.line_mass_weight_history)
+        self._lines_history.extend(self.basement_lines_history)
         return self._lines_history
+
+    # LM - legs middle point, LM12 - middle point between legs 1 and 2, and so on
+    def calculate_basement_points(self):
+        LF_13 = LinearFunc(self.Leg1.D, self.Leg3.D)
+        LF_24 = LinearFunc(self.Leg2.D, self.Leg4.D)
+
+        intersection = calculate_intersection(LF_13, LF_24)
+        LM = Point(intersection[0], intersection[1], self.ground_z)
+        return LM
 
     def calculate_mass_center(self):
         weight_points = []
@@ -392,16 +469,13 @@ lm = log_movement(Leg1, Leg2, Leg3, Leg4)
 
 m = 8
 lm.body_movement(m, m, -3)
-print('Log: phase 1')
 lm.body_movement(-m, -m, 3)
-print('Log: phase 2')
 lm.leg_movement(leg1_delta=[0, 0, 5])
-print('Log: phase 3')
 lm.body_movement(-5, -5, 5, leg_up=lm.Leg1, leg_up_delta=[10, 10, 0])
 # Вот тут 3-я лапа почему-то смещает D на 0.9!!!
-print('Log: phase 4')
 lm.body_movement(5, 5, -5, leg_up=lm.Leg1, leg_up_delta=[-10, -10, 0])
-print('Log: phase 5')
 lm.leg_movement(leg1_delta=[0, 0, -5])
 
+#for item in lm.angles_history:
+#    print(item)
 animate(lm.lines_history)

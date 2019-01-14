@@ -94,7 +94,6 @@ def execute_sequence(specie=None, path=None, logging=0):
             print_data_to_file(now_str(), current_position[:], get_ga_value()[:], path, specie)
 
 
-
 def write_servos(array):
     with open(servos_file, 'w') as f:
         servos_txt = ','.join(str(int(e)) for e in array)
