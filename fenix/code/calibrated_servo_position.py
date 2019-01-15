@@ -33,7 +33,7 @@ calibration_dict = [
 
 
 def calibrate(i, input_value):
-    return round(calibration_dict[i][0] + (input_value * calibration_dict[i][1]*1.0 / 90), 3)
+    return round(calibration_dict[i][0] + (input_value * calibration_dict[i][1]*1.0 / 90), 4)
 
 
 output_seq = [None] * 16
@@ -65,7 +65,7 @@ while True:
     try:
         try:
             with open('/nexus/fenix/wrk/servos.txt') as f:
-                servo_data = [int(s) for s in f.read().split(',')]
+                servo_data = [float(s) for s in f.read().split(',')]
             f.closed
 
             for i in range(0, len(servo_data)):

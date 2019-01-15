@@ -19,6 +19,10 @@ leg_BC_weight = 50
 leg_AB_weight = 150
 leg_OA_weight = 50
 
+start_gamma = -55
+start_beta = -60
+start_alpha = -25
+
 
 class Point:
     def __init__(self, x, y, z):
@@ -481,37 +485,41 @@ class log_movement:
         return [round(mass_center_x/weight_sum, 3), round(mass_center_y/weight_sum, 3)]
 
 
+# angle_to_rad(30), angle_to_rad(-30), angle_to_rad(-45)
 k = 18
 O1 = Point(4.5, 4.5, 0)
 D1 = Point(k, k, -10)
-Leg1 = Leg("Leg1", O1, D1, angle_to_rad(30), angle_to_rad(-30), angle_to_rad(-45))
+Leg1 = Leg("Leg1", O1, D1, angle_to_rad(start_alpha), angle_to_rad(start_beta), angle_to_rad(start_gamma))
 
 O2 = Point(4.5, -4.5, 0)
 D2 = Point(k, -k, -10)
-Leg2 = Leg("Leg2", O2, D2, angle_to_rad(30), angle_to_rad(-30), angle_to_rad(-45))
+Leg2 = Leg("Leg2", O2, D2, angle_to_rad(start_alpha), angle_to_rad(start_beta), angle_to_rad(start_gamma))
 
 O3 = Point(-4.5, -4.5, 0)
 D3 = Point(-k, -k, -10)
-Leg3 = Leg("Leg3", O3, D3, angle_to_rad(30), angle_to_rad(-30), angle_to_rad(-45))
+Leg3 = Leg("Leg3", O3, D3, angle_to_rad(start_alpha), angle_to_rad(start_beta), angle_to_rad(start_gamma))
 
 O4 = Point(-4.5, 4.5, 0)
 D4 = Point(-k, k, -10)
-Leg4 = Leg("Leg4", O4, D4, angle_to_rad(30), angle_to_rad(-30), angle_to_rad(-45))
+Leg4 = Leg("Leg4", O4, D4, angle_to_rad(start_alpha), angle_to_rad(start_beta), angle_to_rad(start_gamma))
 
 lm = log_movement(Leg1, Leg2, Leg3, Leg4)
 
-m = 8
-lm.body_movement(m, m, 0)
+m = 5
+n = 10
+lm.body_movement(m, m, n)
 lm.body_movement(-2*m, 0, 0)
 lm.body_movement(0, -2*m, 0)
 lm.body_movement(2*m, 0, 0)
-lm.body_movement(-m, m, 0)
+lm.body_movement(-m, m, -n)
 lm.leg_movement(leg1_delta=[0, 0, 5])
 lm.body_movement(-5, -5, 5, leg_up=lm.Leg1, leg_up_delta=[10, 0, 0])
 # Вот тут 3-я лапа почему-то смещает D на 0.9!!!
 lm.body_movement(5, 5, -5, leg_up=lm.Leg1, leg_up_delta=[-10, 0, 0])
 lm.leg_movement(leg1_delta=[0, 0, -5])
 
-#for item in lm.angles_history:
-#    print(item)
 animate(lm.lines_history)
+
+from fenix.code.kinetic_movement import execute_sequence
+
+#execute_sequence(lm.angles_history)
