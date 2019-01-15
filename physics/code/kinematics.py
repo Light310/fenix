@@ -1,9 +1,11 @@
 import math
 import sys
 from math import pi, sin, cos
+sys.path.append('/nexus/fenix/')
 
-from physics.code.animation import animate
+#from physics.code.animation import animate
 from common.utils import angle_to_rad, rad_to_angle
+from fenix.code.kinetic_movement import execute_sequence
 
 a = 10.5
 b = 5.5
@@ -21,7 +23,7 @@ leg_OA_weight = 50
 
 start_gamma = -55
 start_beta = -60
-start_alpha = -25
+start_alpha = 25
 
 
 class Point:
@@ -125,7 +127,7 @@ class Leg:
         self.B = Point(A.x + B_xz[0] * cos(tetta), A.y + B_xz[0] * sin(tetta), A.z + B_xz[1])
         self.C = Point(A.x + C_xz[0] * cos(tetta), A.y + C_xz[0] * sin(tetta), A.z + C_xz[1])
         self.D = Point(A.x + D_xz[0] * cos(tetta), A.y + D_xz[0] * sin(tetta), A.z + D_xz[1])
-        #print('XYZ-projection. B : {0}. C : {1}. D : {2}.'.format(self.B, self.C, self.D))
+        print('XYZ-projection. B : {0}. C : {1}. D : {2}.'.format(self.B, self.C, self.D))
 
         self.tetta, self.alpha, self.beta, self.gamma = tetta, alpha, beta, gamma
         self.save_lines_history()
@@ -281,7 +283,7 @@ class log_movement:
         for leg in [self.Leg1, self.Leg2, self.Leg3, self.Leg4]:
             position.append(round(rad_to_angle(leg.gamma), 2))
             position.append(round(rad_to_angle(leg.beta), 2))
-            position.append(round(rad_to_angle(leg.alpha), 2))
+            position.append(-1*round(rad_to_angle(leg.alpha), 2))
             tetta = rad_to_angle(leg.tetta)
             if leg == self.Leg1:
                 tetta -= 45
@@ -505,21 +507,20 @@ Leg4 = Leg("Leg4", O4, D4, angle_to_rad(start_alpha), angle_to_rad(start_beta), 
 
 lm = log_movement(Leg1, Leg2, Leg3, Leg4)
 
-m = 5
-n = 10
+m = 1
+n = 0
 lm.body_movement(m, m, n)
-lm.body_movement(-2*m, 0, 0)
-lm.body_movement(0, -2*m, 0)
-lm.body_movement(2*m, 0, 0)
-lm.body_movement(-m, m, -n)
-lm.leg_movement(leg1_delta=[0, 0, 5])
-lm.body_movement(-5, -5, 5, leg_up=lm.Leg1, leg_up_delta=[10, 0, 0])
-# Вот тут 3-я лапа почему-то смещает D на 0.9!!!
-lm.body_movement(5, 5, -5, leg_up=lm.Leg1, leg_up_delta=[-10, 0, 0])
-lm.leg_movement(leg1_delta=[0, 0, -5])
+#lm.body_movement(-2*m, 0, 0)
+#lm.body_movement(0, -2*m, 0)
+#lm.body_movement(2*m, 0, 0)
+lm.body_movement(-m, -m, -n)
+#lm.leg_movement(leg1_delta=[0, 0, 5])
+#lm.body_movement(-5, -5, 5, leg_up=lm.Leg1, leg_up_delta=[10, 0, 0])
+#lm.body_movement(5, 5, -5, leg_up=lm.Leg1, leg_up_delta=[-10, 0, 0])
+#lm.leg_movement(leg1_delta=[0, 0, -5])
 
-animate(lm.lines_history)
+#animate(lm.lines_history)
 
-from fenix.code.kinetic_movement import execute_sequence
 
-#execute_sequence(lm.angles_history)
+
+execute_sequence(lm.angles_history)
