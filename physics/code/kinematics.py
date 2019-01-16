@@ -21,7 +21,7 @@ leg_OA_weight = 50
 
 start_gamma = -55
 start_beta = -60
-start_alpha = -25
+start_alpha = 25
 
 
 class Point:
@@ -281,7 +281,7 @@ class log_movement:
         for leg in [self.Leg1, self.Leg2, self.Leg3, self.Leg4]:
             position.append(round(rad_to_angle(leg.gamma), 2))
             position.append(round(rad_to_angle(leg.beta), 2))
-            position.append(round(rad_to_angle(leg.alpha), 2))
+            position.append(-1*round(rad_to_angle(leg.alpha), 2))
             tetta = rad_to_angle(leg.tetta)
             if leg == self.Leg1:
                 tetta -= 45
@@ -505,8 +505,8 @@ Leg4 = Leg("Leg4", O4, D4, angle_to_rad(start_alpha), angle_to_rad(start_beta), 
 
 lm = log_movement(Leg1, Leg2, Leg3, Leg4)
 
-m = 5
-n = 10
+m = 8
+n = 0
 lm.body_movement(m, m, n)
 lm.body_movement(-2*m, 0, 0)
 lm.body_movement(0, -2*m, 0)
@@ -514,12 +514,18 @@ lm.body_movement(2*m, 0, 0)
 lm.body_movement(-m, m, -n)
 lm.leg_movement(leg1_delta=[0, 0, 5])
 lm.body_movement(-5, -5, 5, leg_up=lm.Leg1, leg_up_delta=[10, 0, 0])
-# Вот тут 3-я лапа почему-то смещает D на 0.9!!!
 lm.body_movement(5, 5, -5, leg_up=lm.Leg1, leg_up_delta=[-10, 0, 0])
 lm.leg_movement(leg1_delta=[0, 0, -5])
 
 animate(lm.lines_history)
 
-from fenix.code.kinetic_movement import execute_sequence
+#from fenix.code.kinetic_movement import execute_sequence
 
 #execute_sequence(lm.angles_history)
+
+from common.BasicConfig import BasicConfig
+cfg = BasicConfig()
+sequence_file = cfg.sequence_file
+
+with open(sequence_file, 'w') as f:
+    f.write('\n'.join(str(x) for x in lm.angles_history))
