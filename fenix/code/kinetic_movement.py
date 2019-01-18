@@ -49,11 +49,10 @@ def execute_sequence():
         time.sleep(sleep_time)
 
 
-def write_servos(array):
+def write_servos(position):
     with open(servos_file, 'w') as f:
-        servos_txt = ','.join(str(float(round(e, 3))) for e in array)
-        print('Writing position : {0}'.format(servos_txt))
-        f.write(servos_txt)
+        print('Writing position : {0}'.format(position))
+        f.write(position)
 
 
 def read_servos():
@@ -69,5 +68,5 @@ def read_servos():
         result.append(float(item))
     return result
 
-
+execute_sequence()
 #execute_sequence('specie_20181028224456')
