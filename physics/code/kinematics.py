@@ -2,18 +2,20 @@ import math
 import sys
 from math import pi, sin, cos
 import random
+#sys.path.append('/nexus/fenix/')
+
 from common.BasicConfig import BasicConfig
 
-
-#sys.path.append('/nexus/fenix/')
 
 from physics.code.animation import animate
 #from fnx.animate import animate
 #from common.utils import angle_to_rad, rad_to_angle
 #from fenix.code.kinetic_movement import execute_sequence
 
+
 cfg = BasicConfig()
 tmp_file = cfg.tmp_file
+sequence_file = cfg.sequence_file
 
 def angle_to_rad(angle):
     return angle * pi / 180
@@ -22,10 +24,15 @@ def angle_to_rad(angle):
 def rad_to_angle(rad):
     return rad * 180/pi
 
-
+"""
 a = 10.5
 b = 5.5
 c = 15
+d = 5.5
+"""
+a = 10.5
+b = 5.5
+c = 14.5
 d = 5.5
 
 phi_angle = 15
@@ -273,9 +280,9 @@ def calculate_intersection(func1, func2):
     return [x, y]
 
 
-class log_movement:
-    def __init__(self, Leg1, Leg2, Leg3, Leg4):
-        self.step = 0.5
+class movement_sequence:
+    def __init__(self, Leg1, Leg2, Leg3, Leg4, step=0.5):
+        self.step = step
         self.ground_z = -10
         self.result = 1
         self.unsupporting_leg = None
@@ -297,7 +304,8 @@ class log_movement:
     # leg2 tetta = -45, leg3 tetta = -135, leg4 tetta = 135
     def save_angles(self):
         position = []
-        for leg in [self.Leg1, self.Leg2, self.Leg3, self.Leg4]:
+        #for leg in [self.Leg1, self.Leg2, self.Leg3, self.Leg4]:
+        for leg in [self.Leg1, self.Leg4, self.Leg3, self.Leg2]:
             position.append(round(rad_to_angle(leg.gamma), 2))
             position.append(round(rad_to_angle(leg.beta), 2))
             position.append(-1*round(rad_to_angle(leg.alpha), 2))
@@ -312,6 +320,8 @@ class log_movement:
                 tetta -= 135
             tetta = round(tetta, 2)
             position.append(tetta)
+        print('Angles : {0}'.format(position))
+        print('{0}\n{1}\n{2}\n{3}\n'.format(self.Leg1, self.Leg2, self.Leg3, self.Leg4))
         self.angles_history.append(position)
 
     def body_points_movement(self):
@@ -399,9 +409,12 @@ class log_movement:
         max_delta = max(abs(delta_x), abs(delta_y), abs(delta_z),
                         abs(leg_up_delta[0]), abs(leg_up_delta[1]), abs(leg_up_delta[2]))
 
-        if max_delta % self.step != 0:
-            print('Bad delta : {0}. Halt'.format(max_delta))
+        """
+        # WTF mb dangerous
+        if round(max_delta, 2) % round(self.step, 2) != 0:
+            print('Bad delta : {0}. Div : {1}. Halt'.format(max_delta, round(max_delta % self.step, 2)))
             sys.exit(0)
+        """
         num_steps = int(max_delta / self.step)
         _delta_x = round(delta_x / num_steps, 4)
         _delta_y = round(delta_y / num_steps, 4)
@@ -436,35 +449,6 @@ class log_movement:
 
             self.body_points_movement()
 
-    """
-    def leg_movement(self, leg1_delta=None, leg2_delta=None, leg3_delta=None, leg4_delta=None):
-        # or [0] replaces None with that array
-        max_delta = max(
-                        max(abs(x) for x in leg1_delta or [0]),
-                        max(abs(x) for x in leg2_delta or [0]),
-                        max(abs(x) for x in leg3_delta or [0]),
-                        max(abs(x) for x in leg4_delta or [0])
-        )
-        if max_delta % self.step != 0:
-            print('Bad delta : {0}. Halt'.format(max_delta))
-            sys.exit(0)
-        num_steps = int(max_delta / self.step)
-        if leg1_delta:
-            leg1_delta = [round(x/num_steps, 4) for x in leg1_delta]
-        if leg2_delta:
-            leg2_delta = [round(x/num_steps, 4) for x in leg2_delta]
-        if leg3_delta:
-            leg3_delta = [round(x/num_steps, 4) for x in leg3_delta]
-        if leg4_delta:
-            leg4_delta = [round(x/num_steps, 4) for x in leg4_delta]
-
-        for m in range(num_steps):
-            self._leg_move(self.Leg1, leg1_delta)
-            self._leg_move(self.Leg2, leg2_delta)
-            self._leg_move(self.Leg3, leg3_delta)
-            self._leg_move(self.Leg4, leg4_delta)
-            self.body_points_movement()
-    """
     def leg_movement(self, leg, leg_delta):
         max_delta = max(abs(x) for x in leg_delta)
         if max_delta % self.step != 0:
@@ -559,11 +543,19 @@ class log_movement:
                 if self.result == 1:
                     movement[step] = [r1, r2, r3, r4, r5, r6]
                 step += 1
-        abs_result = [self.Leg1.O.x - 4.5, self.Leg1.O.y - 4.5]
+        global abs_result
+        abs_result = [round(self.Leg1.O.x - 4.5, 2), round(self.Leg1.O.y - 4.5, 2)]
         print('O finish : {0}'.format(self.Leg1.O))
 
+    def print_to_sequence_file(self):
+        with open(sequence_file, 'w') as f:
+            f.write('\n'.join(str(x) for x in self.angles_history))
 
-def create_new_lm():
+    def run_animation(self):
+        animate(self.lines_history)
+
+
+def create_new_ms(step=0.5):
     k = 18
     O1 = Point(4.5, 4.5, 0)
     D1 = Point(k, k, -10)
@@ -581,9 +573,7 @@ def create_new_lm():
     D4 = Point(-k, k, -10)
     Leg4 = Leg("Leg4", O4, D4, angle_to_rad(start_alpha), angle_to_rad(start_beta), angle_to_rad(start_gamma))
 
-    lm = log_movement(Leg1, Leg2, Leg3, Leg4)
-    return lm
-
+    return movement_sequence(Leg1, Leg2, Leg3, Leg4, step=step)
 
 
 class Res:
@@ -594,53 +584,66 @@ class Res:
     def __str__(self):
         return 'Result : {0}. Moves : {1}'.format(self.result, self.moves)
 
-
-result = 0
-abs_result = []
-attempts = 0
-attempts2 = 0
-movement = [[], [], [], [], [], [], [], []]
-results_list = []
-
-while attempts < 8:
-
-    print('Attempt #{0}.{1}'.format(attempts, attempts2))
-    if attempts2 > 2:
-        print('Reset movement')
-        #results_list.append(Res(abs_result, movement))
-        with open(tmp_file, 'a') as f:
-            f.write('{0}\n'.format(Res(abs_result, movement)))
+# if movement is passed, creates a movement sequence for displaying it,
+# else generates species
+def genetics(attempts_total=10000, attempts_specie=1000, _movement=None):
+    global movement, abs_result
+    result = 0
+    abs_result = []
+    attempts = 0
+    attempts2 = 0
+    if _movement is not None:
+        movement = _movement[:]
+        attempts_total = 1
+        attempts_specie = 1
+    else:
         movement = [[], [], [], [], [], [], [], []]
-        attempts2 = 0
-    print(movement)
-    lm = create_new_lm()
-    try:
-        lm.movement_specie()
-        if lm.result == 1:
-            results_list.append(Res(abs_result, movement))
+    results_list = []
+
+    while attempts < attempts_total:
+        print('Attempt #{0}.{1}'.format(attempts, attempts2))
+        if attempts2 > attempts_specie:
+            print('Reset movement')
             with open(tmp_file, 'a') as f:
                 f.write('{0}\n'.format(Res(abs_result, movement)))
             movement = [[], [], [], [], [], [], [], []]
             attempts2 = 0
-    except:
-        pass
-    attempts += 1
-    attempts2 += 1
+        print(movement)
+        ms = create_new_ms()
+        try:
+            ms.movement_specie()
+            if ms.result == 1:
+                results_list.append(Res(abs_result, movement))
+                with open(tmp_file, 'a') as f:
+                    f.write('{0}\n'.format(Res(abs_result, movement)))
+                movement = [[], [], [], [], [], [], [], []]
+                attempts2 = 0
+        except:
+            pass
+        attempts += 1
+        attempts2 += 1
+
+    #for item in results_list:
+    #    print(item)
+    return ms
 
 
-for item in results_list:
-    print(item)
+movement = [[1, 0, 0, 0, -2, -3], [3, 1, 4, -2, 4, 3], [2, 2, 3, 4, -4, 2], [3, 3, 2, 3, 3, -4],
+            [2, 3, 2, 0, -4, -2], [0, 0, 1, 1, 3, 3], [0, 3, 1, 2, -4, 1], [2, 5, 1, -5, 3, -2]]
+
+#ms = genetics(_movement=movement)
+#ms = genetics(100, 100)
+
+ms = create_new_ms(0.5)
+m = 5
+ms.body_movement(m, m, 0)
+ms.body_movement(-2*m, 0, 0)
+ms.body_movement(0, -2*m, 0)
+ms.body_movement(2*m, 0, 0)
+ms.body_movement(-m, m, 0)
+ms.body_movement(0, 0, 15)
+ms.body_movement(0, 0, -15)
 
 
-
-# [[2, 3, 0, -1, -2, -3], [4, 5, 2, 2, 4, 5], [0, 2, -1, -3, -5, 1], [3, 2, 4, 1, 1, -3], [], [], [], []]
-# O finish : (7.5,4.5,0.0) + 3, 0
-# [[1, 3, -2, 1, -4, -4], [0, 0, 0, 1, 5, 5], [0, 3, -1, 0, -1, 2], [2, 0, 4, -2, 2, -3], [], [], [], []]
-# O finish : (10.5,4.5,0.0)
-# [[1, 1, -2, 1, -3, -1], [2, 5, -1, 2, 4, 1], [5, 0, 3, 4, -3, 1], [4, 0, 5, -5, 3, -3], [], [], [], []]
-# O finish : (15.5,1.5,0.0)
-# [[2, 2, 0, -2, -4, -1], [5, 1, 1, -2, 5, 4], [2, 1, 2, -2, -2, 3], [2, 2, 0, 0, 4, -4], [5, 3, 2, 2, -5, -3], [0, 3, 1, 2, 4, 3], [3, 4, 1, 3, -5, 2], [4, 4, 2, -3, 5, -5]]
-
-
-#if result == 1:
-#    animate(lm.lines_history)
+ms.print_to_sequence_file()
+ms.run_animation()
