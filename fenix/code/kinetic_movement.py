@@ -11,6 +11,7 @@ step_divider = 1
 
 cfg = BasicConfig()
 servos_file = cfg.servos_file
+sequence_file = cfg.sequence_file
 results_path = cfg.results_dir
 species_path = cfg.species_dir
 
@@ -37,17 +38,21 @@ def max_diff(array1, array2):
     return md
 
 
-def execute_sequence(sequence):
+def execute_sequence():
+    with open(sequence_file) as f:
+        sequence = f.readlines()
+    # you may also want to remove whitespace characters like `\n` at the end of each line
+    sequence = [x.strip().replace('[', '').replace(']', '') for x in sequence]
+
     for item in sequence:
         write_servos(item)
         time.sleep(sleep_time)
 
 
-def write_servos(array):
+def write_servos(position):
     with open(servos_file, 'w') as f:
-        servos_txt = ','.join(str(float(round(e, 3))) for e in array)
-        print('Writing position : {0}'.format(servos_txt))
-        f.write(servos_txt)
+        print('Writing position : {0}'.format(position))
+        f.write(position)
 
 
 def read_servos():
@@ -63,6 +68,5 @@ def read_servos():
         result.append(float(item))
     return result
 
-
-
+execute_sequence()
 #execute_sequence('specie_20181028224456')

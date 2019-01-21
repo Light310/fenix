@@ -40,3 +40,11 @@ class BasicConfig:
     @property
     def servos_file(self):
         return os.path.join(self.workdir, self.config['Files']['servos_file'])
+
+    @property
+    def sequence_file(self):
+        return os.path.join(self.workdir, self.config['Files']['sequence_file'])
+
+    @property
+    def tmp_file(self):
+        return os.path.join(self.workdir, self.config['Files']['tmp_file'])
