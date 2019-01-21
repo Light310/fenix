@@ -3,6 +3,8 @@ import sys
 from math import pi, sin, cos
 import random
 #sys.path.append('/nexus/fenix/')
+import numpy as np
+
 
 from common.BasicConfig import BasicConfig
 
@@ -213,7 +215,8 @@ def find_angles(Dx, Dy):
         print('No decisions')
         sys.exit(1)
 
-    for k in range(-70, 71, 1):
+    #for k in range(-70, 71, 1):
+    for k in np.arange(-70.0, 70.0, 0.25):
         ksi = angle_to_rad(k)
 
         Cx = Dx + c * math.cos(math.pi / 2 + ksi)
@@ -320,8 +323,8 @@ class movement_sequence:
                 tetta -= 135
             tetta = round(tetta, 2)
             position.append(tetta)
-        print('Angles : {0}'.format(position))
-        print('{0}\n{1}\n{2}\n{3}\n'.format(self.Leg1, self.Leg2, self.Leg3, self.Leg4))
+        #print('Angles : {0}'.format(position))
+        #print('{0}\n{1}\n{2}\n{3}\n'.format(self.Leg1, self.Leg2, self.Leg3, self.Leg4))
         self.angles_history.append(position)
 
     def body_points_movement(self):
@@ -451,9 +454,11 @@ class movement_sequence:
 
     def leg_movement(self, leg, leg_delta):
         max_delta = max(abs(x) for x in leg_delta)
+        """
         if max_delta % self.step != 0:
             print('Bad delta : {0}. Halt'.format(max_delta))
             sys.exit(0)
+        """
         num_steps = int(max_delta / self.step)
         leg_delta = [round(x/num_steps, 4) for x in leg_delta]
         for m in range(num_steps):
@@ -514,9 +519,9 @@ class movement_sequence:
         return [round(mass_center_x/weight_sum, 3), round(mass_center_y/weight_sum, 3)]
 
     def move_leg_gen(self, leg, leg_delta_x, leg_delta_y, body_delta_x, body_delta_y):
-        self.leg_movement(leg, [0, 0, 2])
+        self.leg_movement(leg, [0, 0, 10])
         self.body_movement(body_delta_x, body_delta_y, 0, leg_up=leg, leg_up_delta=[leg_delta_x, leg_delta_y, 0])
-        self.leg_movement(leg, [0, 0, -2])
+        self.leg_movement(leg, [0, 0, -10])
 
     def movement_specie(self):
         self.result = 1
@@ -586,7 +591,7 @@ class Res:
 
 # if movement is passed, creates a movement sequence for displaying it,
 # else generates species
-def genetics(attempts_total=10000, attempts_specie=1000, _movement=None):
+def genetics(attempts_total=10000, attempts_specie=1000, _movement=None, _step=0.5):
     global movement, abs_result
     result = 0
     abs_result = []
@@ -602,14 +607,14 @@ def genetics(attempts_total=10000, attempts_specie=1000, _movement=None):
 
     while attempts < attempts_total:
         print('Attempt #{0}.{1}'.format(attempts, attempts2))
-        if attempts2 > attempts_specie:
+        if attempts2 >= attempts_specie - 1:
             print('Reset movement')
             with open(tmp_file, 'a') as f:
                 f.write('{0}\n'.format(Res(abs_result, movement)))
             movement = [[], [], [], [], [], [], [], []]
             attempts2 = 0
         print(movement)
-        ms = create_new_ms()
+        ms = create_new_ms(step=_step)
         try:
             ms.movement_specie()
             if ms.result == 1:
@@ -628,14 +633,14 @@ def genetics(attempts_total=10000, attempts_specie=1000, _movement=None):
     return ms
 
 
-movement = [[1, 0, 0, 0, -2, -3], [3, 1, 4, -2, 4, 3], [2, 2, 3, 4, -4, 2], [3, 3, 2, 3, 3, -4],
-            [2, 3, 2, 0, -4, -2], [0, 0, 1, 1, 3, 3], [0, 3, 1, 2, -4, 1], [2, 5, 1, -5, 3, -2]]
+movement = [[4, 4, -3, 0, -1, -2], [0, 2, 3, -3, 3, 5], [2, 2, 4, 5, -3, -1], [0, 4, 1, 2, 3, -4],
+            [5, 0, 2, -1, -1, -2], [3, 1, 3, 0, 2, 4], [2, 0, 0, 1, -4, -1], [2, 0, 1, 1, 5, -2]]
 
-#ms = genetics(_movement=movement)
-#ms = genetics(100, 100)
-
-ms = create_new_ms(0.5)
-m = 5
+#ms = genetics(_movement=movement, _step=0.1)
+ms = genetics(10, 10)
+"""
+ms = create_new_ms(0.1)
+m = 7
 ms.body_movement(m, m, 0)
 ms.body_movement(-2*m, 0, 0)
 ms.body_movement(0, -2*m, 0)
@@ -644,6 +649,7 @@ ms.body_movement(-m, m, 0)
 ms.body_movement(0, 0, 15)
 ms.body_movement(0, 0, -15)
 
-
+"""
 ms.print_to_sequence_file()
+
 ms.run_animation()
