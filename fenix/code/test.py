@@ -1,4 +1,7 @@
-from common.MyTime import dttm_from_str
+from decimal import Decimal
+a = 5
+b = 0.1
 
-str = '2018-10-28 23:53:28.829493'
-print(dttm_from_str(str))
+print(a % b)
+
+print(a//b * b + a % b)
