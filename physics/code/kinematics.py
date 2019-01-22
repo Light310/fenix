@@ -19,6 +19,7 @@ cfg = BasicConfig()
 tmp_file = cfg.tmp_file
 sequence_file = cfg.sequence_file
 
+
 def angle_to_rad(angle):
     return angle * pi / 180
 
@@ -192,7 +193,7 @@ def get_best_angles(angles_pref, all_angles):
             if print_angles:
                 print('Bad gamma : {0}'.format(rad_to_angle(item[2])))
             continue
-        if (item[0] + item[1] + item[2] < angle_to_rad(-120)) or (item[0] + item[1] + item[2] > angle_to_rad(-30)):
+        if (item[0] + item[1] + item[2] < angle_to_rad(-120)) or (item[0] + item[1] + item[2] > angle_to_rad(-60)):
             if print_angles:
                 print('Bad alpha + beta + gamma : {0}'.format(rad_to_angle(item[0] + item[1] + item[2])))
             continue
@@ -216,7 +217,7 @@ def find_angles(Dx, Dy):
         sys.exit(1)
 
     #for k in range(-70, 71, 1):
-    for k in np.arange(-70.0, 70.0, 0.25):
+    for k in np.arange(-30.0, 30.0, 0.1):
         ksi = angle_to_rad(k)
 
         Cx = Dx + c * math.cos(math.pi / 2 + ksi)
@@ -287,6 +288,7 @@ class movement_sequence:
     def __init__(self, Leg1, Leg2, Leg3, Leg4, step=0.5):
         self.step = step
         self.ground_z = -10
+        self.mass_center_distance = 0
         self.result = 1
         self.unsupporting_leg = None
 
@@ -378,17 +380,15 @@ class movement_sequence:
 
         self.save_angles()
         self.check_supporting_leg()
+        #print(self.mass_center_distance)
 
     def check_supporting_leg(self):
         for leg in [self.Leg1, self.Leg2, self.Leg3, self.Leg4]:
-            #print(leg)
-            #print(self.unsupporting_leg)
-            #print(round(leg.D.z, 2))
+            # mass center too close
+            if self.mass_center_distance < 1:
+                self.result = 0
             if leg != self.unsupporting_leg and round(leg.D.z, 2) >= self.ground_z + 2:
                 self.result = 0
-                #print('Supporting leg went up, HALT! D : {0}'.format(leg.D))
-                #print(leg)
-                #sys.exit(0)
 
     # LM - legs middle point, LM_12 - middle of legs 1 and 2
     # ALL projected to self.ground_z
@@ -400,12 +400,16 @@ class movement_sequence:
 
         x, y = mass_center_xy[0], mass_center_xy[1]
         if LF_14.get_x(y) <= x and LF_12.get_y(x) <= y:
+            self.mass_center_distance = min(abs(LF_14.get_x(y) - x), abs(LF_12.get_y(x) - y))
             return self.Leg3
         if LF_23.get_x(y) <= x and LF_12.get_y(x) > y:
+            self.mass_center_distance = min(abs(LF_23.get_x(y) - x), abs(LF_12.get_y(x) - y))
             return self.Leg4
         if LF_23.get_x(y) > x and LF_34.get_y(x) > y:
+            self.mass_center_distance = min(abs(LF_23.get_x(y) - x), abs(LF_34.get_y(x) - y))
             return self.Leg1
         if LF_14.get_x(y) > x and LF_34.get_y(x) <= y:
+            self.mass_center_distance = min(abs(LF_14.get_x(y) - x), abs(LF_34.get_y(x) - y))
             return self.Leg2
 
     def body_movement(self, delta_x, delta_y, delta_z, leg_up=None, leg_up_delta=[0, 0, 0]):
@@ -523,35 +527,6 @@ class movement_sequence:
         self.body_movement(body_delta_x, body_delta_y, 0, leg_up=leg, leg_up_delta=[leg_delta_x, leg_delta_y, 0])
         self.leg_movement(leg, [0, 0, -10])
 
-    def movement_specie(self):
-        self.result = 1
-        rnd_range = 10
-        print('O start : {0}'.format(self.Leg1.O))
-        step = 0
-        for i in range(2):
-            #for item in [self.Leg1, self.Leg3, self.Leg2, self.Leg4]:
-            for item in [self.Leg1, self.Leg3, self.Leg2, self.Leg4]:
-                if len(movement[step]) > 0:
-                    r1, r2, r3 = movement[step][0], movement[step][1], movement[step][2]
-                    r4, r5, r6 = movement[step][3], movement[step][4], movement[step][5]
-                else:
-                    r1 = int(random.randint(0, rnd_range) * 0.5)
-                    r2 = int(random.randint(0, rnd_range) * 0.5)
-                    r3 = int(random.randint(-rnd_range, rnd_range) * 0.5)
-                    r4 = int(random.randint(-rnd_range, rnd_range) * 0.5)
-                    r5 = int(random.randint(-rnd_range, rnd_range) * 0.5)
-                    r6 = int(random.randint(-rnd_range, rnd_range) * 0.5)
-
-                self.body_movement(r5, r6, 0)
-                self.move_leg_gen(item, r1, r2, r3, r4)
-                print('Step : {0}. R : {1}, {2}, {3}, {4}, {5}, {6}'.format(step, r1, r2, r3, r4, r5, r6))
-                if self.result == 1:
-                    movement[step] = [r1, r2, r3, r4, r5, r6]
-                step += 1
-        global abs_result
-        abs_result = [round(self.Leg1.O.x - 4.5, 2), round(self.Leg1.O.y - 4.5, 2)]
-        print('O finish : {0}'.format(self.Leg1.O))
-
     def print_to_sequence_file(self):
         with open(sequence_file, 'w') as f:
             f.write('\n'.join(str(x) for x in self.angles_history))
@@ -581,75 +556,69 @@ def create_new_ms(step=0.5):
     return movement_sequence(Leg1, Leg2, Leg3, Leg4, step=step)
 
 
-class Res:
-    def __init__(self, result, moves):
-        self.result = result
-        self.moves = moves
+class Specie:
+    def __init__(self, sequence=None):
+        if sequence is None:
+            self.generate_random_specie()
+        else:
+            self.sequence = sequence
+        self.result = []
+        self.moves = 0
+
+    def generate_random_specie(self):
+        rnd_range = 10
+        self.sequence = []
+        for i in range(8):
+            r1 = int(random.randint(-rnd_range, rnd_range) * 0.5)
+            r2 = int(random.randint(-rnd_range, rnd_range) * 0.5)
+            r3 = int(random.randint(-rnd_range, rnd_range) * 0.5)
+            r4 = int(random.randint(-rnd_range, rnd_range) * 0.5)
+            r5 = int(random.randint(-rnd_range, rnd_range) * 0.5)
+            r6 = int(random.randint(-rnd_range, rnd_range) * 0.5)
+            self.sequence.append([r1, r2, r3, r4, r5, r6])
 
     def __str__(self):
-        return 'Result : {0}. Moves : {1}'.format(self.result, self.moves)
+        return 'Result : {0}. Moves : {1}. Sequence : {2}'.format(self.result, self.moves, self.sequence)
 
-# if movement is passed, creates a movement sequence for displaying it,
-# else generates species
-def genetics(attempts_total=10000, attempts_specie=1000, _movement=None, _step=0.5):
-    global movement, abs_result
-    result = 0
-    abs_result = []
-    attempts = 0
-    attempts2 = 0
-    if _movement is not None:
-        movement = _movement[:]
-        attempts_total = 1
-        attempts_specie = 1
-    else:
-        movement = [[], [], [], [], [], [], [], []]
-    results_list = []
 
-    while attempts < attempts_total:
-        print('Attempt #{0}.{1}'.format(attempts, attempts2))
-        if attempts2 >= attempts_specie - 1:
-            print('Reset movement')
-            with open(tmp_file, 'a') as f:
-                f.write('{0}\n'.format(Res(abs_result, movement)))
-            movement = [[], [], [], [], [], [], [], []]
-            attempts2 = 0
-        print(movement)
-        ms = create_new_ms(step=_step)
+def process_specie(specie):
+    ms = create_new_ms()
+    for j in range(len(specie.sequence)):
         try:
-            ms.movement_specie()
-            if ms.result == 1:
-                results_list.append(Res(abs_result, movement))
-                with open(tmp_file, 'a') as f:
-                    f.write('{0}\n'.format(Res(abs_result, movement)))
-                movement = [[], [], [], [], [], [], [], []]
-                attempts2 = 0
+            move = specie.sequence[j]
+            if j in [0, 4]:
+                leg = ms.Leg1
+            elif j in [1, 5]:
+                leg = ms.Leg3
+            elif j in [2, 6]:
+                leg = ms.Leg2
+            elif j in [3, 7]:
+                leg = ms.Leg4
+            r1, r2, r3, r4, r5, r6 = move[0], move[1], move[2], move[3], move[4], move[5]
+
+            ms.body_movement(r5, r6, 0)
+            ms.move_leg_gen(leg, r1, r2, r3, r4)
         except:
-            pass
-        attempts += 1
-        attempts2 += 1
+            ms.result = 0
+        if ms.result == 0:
+            return j, [round(ms.Leg1.O.x - 4.5, 2), round(ms.Leg1.O.y - 4.5, 2)]
 
-    #for item in results_list:
-    #    print(item)
-    return ms
+    return 8, [round(ms.Leg1.O.x - 4.5, 2), round(ms.Leg1.O.y - 4.5, 2)]
 
 
-movement = [[4, 4, -3, 0, -1, -2], [0, 2, 3, -3, 3, 5], [2, 2, 4, 5, -3, -1], [0, 4, 1, 2, 3, -4],
-            [5, 0, 2, -1, -1, -2], [3, 1, 3, 0, 2, 4], [2, 0, 0, 1, -4, -1], [2, 0, 1, 1, 5, -2]]
+def genetics(num_tests):
+    for i in range(num_tests):
+        sp = Specie()
+        result = process_specie(sp)
+        sp.moves = result[0]
+        sp.result = result[1]
+        print('{0}'.format(sp))
+        if result[0] > 0:
+            with open(tmp_file, 'a') as f:
+                f.write('{0}\n'.format(sp))
 
-#ms = genetics(_movement=movement, _step=0.1)
-ms = genetics(10, 10)
-"""
-ms = create_new_ms(0.1)
-m = 7
-ms.body_movement(m, m, 0)
-ms.body_movement(-2*m, 0, 0)
-ms.body_movement(0, -2*m, 0)
-ms.body_movement(2*m, 0, 0)
-ms.body_movement(-m, m, 0)
-ms.body_movement(0, 0, 15)
-ms.body_movement(0, 0, -15)
+genetics(10)
+#ms.print_to_sequence_file()
+#Result : [9.0, 4.0]. Moves : [[1, 2, 1, -2, -1, 0], [4, 4, 1, 0, 3, 1], [0, 3, 0, 0, -4, 3], [4, 3, 1, 1, 3, -3], [1, 2, 1, 1, -3, 0], [3, 5, -2, 3, 5, 3], [0, 0, -1, 2, -4, 0], [0, 0, 5, 0, 4, -5]]
 
-"""
-ms.print_to_sequence_file()
-
-ms.run_animation()
+#ms.run_animation()
