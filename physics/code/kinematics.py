@@ -2,7 +2,7 @@ import math
 import sys
 from math import pi, sin, cos
 import random
-#sys.path.append('/nexus/fenix/')
+sys.path.append('/nexus/fenix/fenix/')
 import numpy as np
 
 
@@ -192,7 +192,7 @@ def get_best_angles(angles_pref, all_angles):
             if print_angles:
                 print('Bad gamma : {0}'.format(rad_to_angle(item[2])))
             continue
-        if (item[0] + item[1] + item[2] < angle_to_rad(-120)) or (item[0] + item[1] + item[2] > angle_to_rad(-30)):
+        if (item[0] + item[1] + item[2] < angle_to_rad(-120)) or (item[0] + item[1] + item[2] > angle_to_rad(-60)):
             if print_angles:
                 print('Bad alpha + beta + gamma : {0}'.format(rad_to_angle(item[0] + item[1] + item[2])))
             continue
@@ -637,7 +637,7 @@ movement = [[4, 4, -3, 0, -1, -2], [0, 2, 3, -3, 3, 5], [2, 2, 4, 5, -3, -1], [0
             [5, 0, 2, -1, -1, -2], [3, 1, 3, 0, 2, 4], [2, 0, 0, 1, -4, -1], [2, 0, 1, 1, 5, -2]]
 
 #ms = genetics(_movement=movement, _step=0.1)
-ms = genetics(10, 10)
+ms = genetics(100000, 1000)
 """
 ms = create_new_ms(0.1)
 m = 7
@@ -652,4 +652,4 @@ ms.body_movement(0, 0, -15)
 """
 ms.print_to_sequence_file()
 
-ms.run_animation()
+#ms.run_animation()
