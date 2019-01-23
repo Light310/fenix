@@ -385,8 +385,8 @@ class movement_sequence:
     def check_supporting_leg(self):
         for leg in [self.Leg1, self.Leg2, self.Leg3, self.Leg4]:
             # mass center too close
-            if self.mass_center_distance < 1:
-                self.result = 0
+            #if self.mass_center_distance < 0.1:
+            #    self.result = 0
             if leg != self.unsupporting_leg and round(leg.D.z, 2) >= self.ground_z + 2:
                 self.result = 0
 
@@ -400,16 +400,20 @@ class movement_sequence:
 
         x, y = mass_center_xy[0], mass_center_xy[1]
         if LF_14.get_x(y) <= x and LF_12.get_y(x) <= y:
-            self.mass_center_distance = min(abs(LF_14.get_x(y) - x), abs(LF_12.get_y(x) - y))
+            self.mass_center_distance = (self.mass_center_distance +
+                                         min(abs(LF_14.get_x(y) - x), abs(LF_12.get_y(x) - y))) / 2
             return self.Leg3
         if LF_23.get_x(y) <= x and LF_12.get_y(x) > y:
-            self.mass_center_distance = min(abs(LF_23.get_x(y) - x), abs(LF_12.get_y(x) - y))
+            self.mass_center_distance = (self.mass_center_distance +
+                                         min(abs(LF_23.get_x(y) - x), abs(LF_12.get_y(x) - y))) / 2
             return self.Leg4
         if LF_23.get_x(y) > x and LF_34.get_y(x) > y:
-            self.mass_center_distance = min(abs(LF_23.get_x(y) - x), abs(LF_34.get_y(x) - y))
+            self.mass_center_distance = (self.mass_center_distance +
+                                         min(abs(LF_23.get_x(y) - x), abs(LF_34.get_y(x) - y))) / 2
             return self.Leg1
         if LF_14.get_x(y) > x and LF_34.get_y(x) <= y:
-            self.mass_center_distance = min(abs(LF_14.get_x(y) - x), abs(LF_34.get_y(x) - y))
+            self.mass_center_distance = (self.mass_center_distance +
+                                         min(abs(LF_14.get_x(y) - x), abs(LF_34.get_y(x) - y))) / 2
             return self.Leg2
 
     def body_movement(self, delta_x, delta_y, delta_z, leg_up=None, leg_up_delta=[0, 0, 0]):
@@ -564,6 +568,7 @@ class Specie:
             self.sequence = sequence
         self.result = []
         self.moves = 0
+        self.avg_mass_center_distance = 0
 
     def generate_random_specie(self):
         rnd_range = 10
@@ -578,7 +583,8 @@ class Specie:
             self.sequence.append([r1, r2, r3, r4, r5, r6])
 
     def __str__(self):
-        return 'Result : {0}. Moves : {1}. Sequence : {2}'.format(self.result, self.moves, self.sequence)
+        return 'Result : {0}. Moves : {1}. AMDC : {2} Sequence : {3}'\
+            .format(self.result, self.moves, round(self.avg_mass_center_distance, 3), self.sequence)
 
 
 def process_specie(specie):
@@ -601,9 +607,9 @@ def process_specie(specie):
         except:
             ms.result = 0
         if ms.result == 0:
-            return j, [round(ms.Leg1.O.x - 4.5, 2), round(ms.Leg1.O.y - 4.5, 2)]
+            return j, [round(ms.Leg1.O.x - 4.5, 2), round(ms.Leg1.O.y - 4.5, 2)], ms.mass_center_distance
 
-    return 8, [round(ms.Leg1.O.x - 4.5, 2), round(ms.Leg1.O.y - 4.5, 2)]
+    return 8, [round(ms.Leg1.O.x - 4.5, 2), round(ms.Leg1.O.y - 4.5, 2)], ms.mass_center_distance
 
 
 def genetics(num_tests):
@@ -612,12 +618,13 @@ def genetics(num_tests):
         result = process_specie(sp)
         sp.moves = result[0]
         sp.result = result[1]
+        sp.avg_mass_center_distance = result[2]
         print('{0}'.format(sp))
         if result[0] > 0:
             with open(tmp_file, 'a') as f:
                 f.write('{0}\n'.format(sp))
 
-genetics(10)
+genetics(100)
 #ms.print_to_sequence_file()
 #Result : [9.0, 4.0]. Moves : [[1, 2, 1, -2, -1, 0], [4, 4, 1, 0, 3, 1], [0, 3, 0, 0, -4, 3], [4, 3, 1, 1, 3, -3], [1, 2, 1, 1, -3, 0], [3, 5, -2, 3, 5, 3], [0, 0, -1, 2, -4, 0], [0, 0, 5, 0, 4, -5]]
 
