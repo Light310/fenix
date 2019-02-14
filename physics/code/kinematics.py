@@ -41,30 +41,7 @@ c = 21.5
 d = 5.5
 ground_z = -10
 k = 18
-
-"""
-ground_z = -15
-k = 22
-i = 5,6 - ok
-------------------
-ground_z = -18
-k = 22
-i = 5,6,7 - ok
-
-------------------
-ground_z = -22
-k = 22
-i = 5,6,7 - ok
-------------------
-ground_z = -25
-k = 22
-i = 5 - ok
-------------------
-ground_z = -10
-k = 18
-i = 5 - ok
-
-"""
+turn_angle = pi / 96
 
 z_up = 3
 
@@ -83,6 +60,37 @@ leg_OA_weight = 50
 start_gamma = -55
 start_beta = -60
 start_alpha = 25
+
+
+def get_angle_by_coords(x1, y1):
+    l = math.sqrt(x1 ** 2 + y1 ** 2)
+    initial_angle = math.asin(abs(y1) / l)
+    if x1 >= 0 and y1 >= 0:
+        return initial_angle
+    if x1 >= 0 and y1 < 0:
+        return 2*pi - initial_angle
+    if x1 < 0 and y1 >= 0:
+        return pi - initial_angle
+    if x1 < 0 and y1 < 0:
+        return initial_angle + pi
+
+def turn_on_angle(x1, y1, angle):
+
+    if angle >= pi/2:
+        raise Exception('Too big angle : {0}'.format(angle))
+    l = math.sqrt(x1 ** 2 + y1 ** 2)
+    initial_angle = get_angle_by_coords(x1, y1)
+    result_angle = angle + initial_angle
+    """
+    print('In : ({0},{1}, {2}). Out : ({3},{4}, {5})'
+          .format(x1,
+                  y1,
+                  angle,
+                  round(cos(result_angle) * l, 2),
+                  round(sin(result_angle) * l, 2),
+                  result_angle))
+    """
+    return round(cos(result_angle) * l, 2), round(sin(result_angle) * l, 2)
 
 
 class Point:
@@ -682,6 +690,34 @@ class MovementSequence:
 
             self.post_movement_actions()
 
+    def body_to_center(self):
+        # move body to center
+        avg_o_x, avg_o_y, avg_d_x, avg_d_y = 0, 0, 0, 0
+        for leg in self.Legs:
+            avg_o_x += leg.O.x
+            avg_o_y += leg.O.y
+            avg_d_x += leg.D.x
+            avg_d_y += leg.D.y
+
+        avg_o_x /= 4
+        avg_o_y /= 4
+        avg_d_x /= 4
+        avg_d_y /= 4
+
+        self.body_movement(avg_d_x - avg_o_x, avg_d_y - avg_o_y, 0)
+
+    def turn_body(self, angle):
+        num_steps = int(abs(angle / turn_angle))
+        step_angle = round(angle / num_steps, 4)
+
+        for m in range(num_steps):
+            for leg in self.Legs:
+                x_new, y_new = turn_on_angle(leg.O.x, leg.O.y, step_angle)
+                delta_x = x_new - leg.O.x
+                delta_y = y_new - leg.O.y
+                leg.move_mount_point(delta_x, delta_y, 0)
+            self.post_movement_actions()
+
     @property
     def lines_history(self):
         return self.mh.lines_history
@@ -916,6 +952,7 @@ def compensated_leg_movement(ms, leg_num, leg_delta):
             my_leg.move_mount_point(required_compensation[0], required_compensation[1], 0)
         ms.post_movement_actions()
 
+
 def leg_move_with_compensation(ms, leg_num, delta_x, delta_y):
     body_compensation(ms, leg_num)
     compensated_leg_movement(ms, leg_num, [0, 0, z_up])
@@ -923,15 +960,29 @@ def leg_move_with_compensation(ms, leg_num, delta_x, delta_y):
     compensated_leg_movement(ms, leg_num, [0, 0, -z_up])
 
 
-for _i in [13]:
-    for _k in [20, 22]:
-        for _z in [-15, -20]:
-            for _a in [10.5, 12.5]:
-                for _b in [7.5, 9.5]:
-                    for _seq in [[3, 1, 2, 4]]:
+def turn_body(ms, angle_deg):
+    angle = angle_to_rad(angle_deg)
+    # move leg one by one
+    for leg in [ms.Leg1, ms.Leg3, ms.Leg2, ms.Leg4]:
+        x_new, y_new = turn_on_angle(leg.D.x, leg.D.y, angle)
+        delta_x = x_new - leg.D.x
+        delta_y = y_new - leg.D.y
+        leg_move_with_compensation(ms, leg.number, delta_x, delta_y)
+
+    ms.body_to_center()
+
+    ms.turn_body(angle)
+
+
+for _i in [5, 10, 15, 30, 45, 60]:
+    for _k in [16, 18, 20, 22]:
+        for _z in [-5, -10, -15, -20]:
+            for _a in [8.5, 10.5, 12.5]:
+                for _b in [5.5, 7.5, 9.5]:
+                    for _seq in [[3, 1, 2, 4], [1, 2, 3, 4], [3, 4, 1, 2]]:
                         try:
                             print('--------------')
-                            print('Trying I = {0}. k = {1}. ground_z = {2}, b = {3}'.format(_i, _k, _z, _b))
+                            print('Trying I = pi/{0}. k = {1}. ground_z = {2}, b = {3}'.format(_i, _k, _z, _b))
                             a = _a
                             b = _b
                             c = 21.5
@@ -939,8 +990,7 @@ for _i in [13]:
                             ground_z = _z
                             k = _k
                             ms = create_new_ms()
-                            for leg in _seq:
-                                leg_move_with_compensation(ms, leg, _i, 0)
+                            turn_body(ms, _i)
                             #print('Succeeded I = {0}. k = {1}. ground_z = {2}, b = {3}'.format(_i, _k, _z, _b))
                             with open(tmp_file, 'a') as f:
                                 f.write('1,{0},{1},{2},{3},{4},{5},{6}\n'
@@ -953,12 +1003,11 @@ for _i in [13]:
                                                 len(ms.lines_history[0])))
                         except:
                             with open(tmp_file, 'a') as f:
-                                f.write('0,{0},{1},{2},{3},{4},{5},{6}\n'
+                                f.write('0,{0},{1},{2},{3},{4},{5},0\n'
                                         .format(_i,
                                                 ''.join(str(x) for x in _seq),
                                                 _k,
                                                 _z,
                                                 _a,
-                                                _b,
-                                                len(ms.lines_history[0])))
-                            #print('Failed I = {0}. k = {1}. ground_z = {2}, b = {3}'.format(_i, _k, _z, _b))
+                                                _b))
+
