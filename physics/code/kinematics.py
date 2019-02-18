@@ -458,6 +458,7 @@ def get_best_angles(angles_pref, all_angles):
                 print('Bad alpha + beta + gamma : {0}'.format(rad_to_angle(alpha + beta + gamma)))
             continue
         cur_distance = get_angles_distance(item, angles_pref)
+        cur_distance += 10 * get_angles_distance(item, [start_alpha, start_beta, start_gamma])
         # print('Angles : {0}. Distance : {1}'.format(angles_str(item), cur_distance))
         if cur_distance <= min_distance:
             min_distance = cur_distance
@@ -894,6 +895,7 @@ def body_compensation(ms, leg_num, return_value=0):
         except:
             continue
 
+
 def compensation_iteration_v2(ms1, iternum, x=0, y=0):
     results = []
     step = 0.5
@@ -974,15 +976,22 @@ def turn_body(ms, angle_deg):
     ms.turn_body(angle)
 
 
-for _i in [5, 10, 15, 30, 45, 60]:
+def move_body_straight(ms, delta_x, delta_y, leg_seq=[1, 2, 3, 4], body_to_center=False):
+    for leg in leg_seq:
+        leg_move_with_compensation(ms, leg, delta_x, delta_y)
+    if body_to_center:
+        ms.body_to_center()
+
+
+for _i in [2, 4, 5, 6, 7, 8]:
     for _k in [16, 18, 20, 22]:
         for _z in [-5, -10, -15, -20]:
             for _a in [8.5, 10.5, 12.5]:
                 for _b in [5.5, 7.5, 9.5]:
-                    for _seq in [[3, 1, 2, 4]]:
+                    for _seq in [[3, 1, 2, 4], [1, 2, 3, 4], [3, 4, 1, 2]]:
                         try:
                             print('--------------')
-                            print('Trying I = pi/{0}. k = {1}. ground_z = {2}, b = {3}'.format(_i, _k, _z, _b))
+                            print('Trying I = {0}. k = {1}. ground_z = {2}, b = {3}'.format(_i, _k, _z, _b))
                             a = _a
                             b = _b
                             c = 21.5
@@ -990,7 +999,8 @@ for _i in [5, 10, 15, 30, 45, 60]:
                             ground_z = _z
                             k = _k
                             ms = create_new_ms()
-                            turn_body(ms, _i)
+                            #turn_body(ms, _i)
+                            move_body_straight(ms, _i, _i, leg_seq=_seq)
                             #print('Succeeded I = {0}. k = {1}. ground_z = {2}, b = {3}'.format(_i, _k, _z, _b))
                             with open(tmp_file, 'a') as f:
                                 f.write('1,{0},{1},{2},{3},{4},{5},{6}\n'
