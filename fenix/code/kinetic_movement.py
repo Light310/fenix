@@ -1,10 +1,12 @@
 import time
 import os
 import math
+import sys
+sys.path.append('/nexus/fenix/')
 from common.BasicConfig import BasicConfig
 
 
-sleep_time = 0.2
+sleep_time = 0.08
 step_divider = 1
 
 #control_file = '/nexus/files/servos.txt'

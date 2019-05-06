@@ -33,7 +33,7 @@ calibration_dict = [
 
 
 def calibrate(i, input_value):
-    print('input : {0}, i : {1}, input_value * calibration_dict[i][1]*1.0 / 90, {2} + calibration_dict[i][0] = {3}'.format(input_value, i, input_value * calibration_dict[i][1]*1.0 / 90, calibration_dict[i][0])) 
+    #print('input : {0}, i : {1}, input_value * calibration_dict[i][1]*1.0 / 90, {2} + calibration_dict[i][0] = {3}'.format(input_value, i, input_value * calibration_dict[i][1]*1.0 / 90, calibration_dict[i][0])) 
     return round(calibration_dict[i][0] + (input_value * calibration_dict[i][1]*1.0 / 90), 4)
 
 
@@ -44,7 +44,7 @@ NUM_GPIO = 32
 MIN_WIDTH = 500
 MAX_WIDTH = 2500
 MAX_DIFF = 270  # angle 0 to 270
-SLEEP_S = 0.06  # 6 ms for sleeping
+SLEEP_S = 0.035  # 6 ms for sleeping
 
 step = [0] * NUM_GPIO
 width = [0] * NUM_GPIO
@@ -76,9 +76,9 @@ while True:
             for i in range(0, 16):
                 pulse_width = int(MIN_WIDTH + (MAX_WIDTH - MIN_WIDTH) * output_seq[i] / MAX_DIFF)
                 pi.set_servo_pulsewidth(servo_list[i], pulse_width)
-            print('Initial data : {0}'.format(servo_data))
+            #print('Initial data : {0}'.format(servo_data))
             print('Calibrated data : {0}'.format(output_seq))
-            print('-----------------------')
+            #print('-----------------------')
         except:
             print("Unexpected error:", sys.exc_info()[0])
         time.sleep(SLEEP_S)
