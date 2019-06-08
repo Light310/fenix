@@ -23,8 +23,8 @@ sequence_dict = {
     'fr': 'sq_forw_right_5',
     'l': 'sq_strafe_left_8',
     'r': 'sq_strafe_right_8',
-    'tr': 'sq_turn_ccw_30',
-    'tl': 'sq_turn_cw_30',
+    'tr': 'sq_turn_cw_30',
+    'tl': 'sq_turn_ccw_30',
     'a': 'sq_activation',
     'd': 'sq_deactivation'
 }
