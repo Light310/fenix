@@ -6,7 +6,7 @@ sys.path.append('/nexus/fenix/')
 from common.BasicConfig import BasicConfig
 
 
-sleep_time = 0.08
+sleep_time = 0.02
 step_divider = 1
 
 #control_file = '/nexus/files/servos.txt'
