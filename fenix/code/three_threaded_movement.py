@@ -17,11 +17,11 @@ wrk_path = '/nexus/fenix/wrk/'
 sequence_path = '/nexus/fenix/wrk/sequences/'
 sequence_dict = {
     'Back': 'sq_backw_8',
-    'bl': 'sq_backw_left_5',
-    'br': 'sq_backw_right_5',
+    'LeftBackwards': 'sq_backw_left_5',
+    'RightBackwards': 'sq_backw_right_5',
     'Forward': 'sq_forw_8',
-    'fl': 'sq_forw_left_5',
-    'fr': 'sq_forw_right_5',
+    'LeftForward': 'sq_forw_left_5',
+    'RightForward': 'sq_forw_right_5',
     'StrafeLeft': 'sq_strafe_left_8',
     'StrafeRight': 'sq_strafe_right_8',
     'TurnRight': 'sq_turn_cw_30',
