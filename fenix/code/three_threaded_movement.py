@@ -1,5 +1,6 @@
 import logging
 import threading
+import requests
 import sys
 import time
 import argparse
@@ -15,20 +16,20 @@ from common.BasicConfig import BasicConfig
 wrk_path = '/nexus/fenix/wrk/'
 sequence_path = '/nexus/fenix/wrk/sequences/'
 sequence_dict = {
-    'b': 'sq_backw_8',
-    'bl': 'sq_backw_left_5',
-    'br': 'sq_backw_right_5',
-    'f': 'sq_forw_8',
-    'fl': 'sq_forw_left_5',
-    'fr': 'sq_forw_right_5',
-    'l': 'sq_strafe_left_8',
-    'r': 'sq_strafe_right_8',
-    'tr': 'sq_turn_ccw_30',
-    'tl': 'sq_turn_cw_30',
-    'a': 'sq_activation',
-    'd': 'sq_deactivation'
+    'Back': 'sq_backw_8',
+    'LeftBackwards': 'sq_backw_left_5',
+    'RightBackwards': 'sq_backw_right_5',
+    'Forward': 'sq_forw_8',
+    'LeftForward': 'sq_forw_left_5',
+    'RightForward': 'sq_forw_right_5',
+    'StrafeLeft': 'sq_strafe_left_8',
+    'StrafeRight': 'sq_strafe_right_8',
+    'TurnRight': 'sq_turn_cw_30',
+    'TurnLeft': 'sq_turn_ccw_30',
+    'Activate': 'sq_activation',
+    'Deactivate': 'sq_deactivation'
 }
-sequence_file = "D:\\Development\\Python\\sequence.txt"
+
 command_file = f'{wrk_path}command.txt'
 speed_file = f'{wrk_path}speed.txt'
 log_file = f'{wrk_path}movement.log'
@@ -60,9 +61,12 @@ def load_sequences():
 
 
 def read_command():
-    with open(command_file, 'r') as f:
-        command = f.readline()
-    return command
+    r = requests.get('http://78.46.205.128/read_command')
+    print(r.json()['data'])
+    return r.json()['data']
+    #with open(command_file, 'r') as f:
+    #    command = f.readline()
+    #return command
 
 
 class FenixServos(threading.Thread):
@@ -107,9 +111,12 @@ class FenixServos(threading.Thread):
 def read_speed():
     global stop_thread, sequence_sleep_time
 
-    while True:
-        with open(speed_file, 'r') as f:
-            speed_value = int(f.readline())
+    while True:        
+        #with open(speed_file, 'r') as f:
+        #    speed_value = int(f.readline())
+        r = requests.get('http://78.46.205.128/get_speed')
+        speed_value = int(r.json()['speed'])
+        print(speed_value)
 
         sequence_sleep_time = round(0.0175 + (100 - speed_value) * 0.00875, 5)
         """
@@ -130,16 +137,16 @@ def execute_sequence():
 
     time.sleep(1.0)
 
-    command = 'a'
+    command = 'Activate'
     activation = True
 
-    while True and command != 'd':
+    while True and command != 'Deactivate':
         if activation:
             activation = False
         else:
             command = read_command()
 
-        if command == 'none':
+        if command == 'None':
             time.sleep(0.5)
         else:
             sequence = sequence_dict[command]
