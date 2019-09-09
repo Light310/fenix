@@ -34,32 +34,58 @@ a = 10.5
 b = 5.5
 c = 14.5
 d = 5.5
-"""
+
 a = 10.5
 b = 5.5
-c = 21.5
+c = 21.0
 d = 5.5
-ground_z = -10
-k = 18
+
+
+a = 10.5
+a2 = 13.6
+b = 5.5
+c = 9.3
+d = 5.5
+"""
+ground_z = -9
+k = 14
 turn_angle = pi / 96
 
-z_up = 3
+z_up = 4
 
-mc_magrin = 2
+mc_magrin = 1
 
 
-phi_angle = 15
+#phi_angle = 7.5
+phi_angle = 0.0
 phi = angle_to_rad(phi_angle)
 
+#body_weight = 300
+#leg_CD_weight = 500
 body_weight = 300
-leg_CD_weight = 250
-leg_BC_weight = 50
-leg_AB_weight = 150
-leg_OA_weight = 50
+leg_CD_weight = 30
+leg_BC_weight = 30
+leg_AB_weight = 50
+leg_OA_weight = 30
 
+
+"""
 start_gamma = -55
 start_beta = -60
 start_alpha = 25
+"""
+"""
+start_gamma = -20
+start_beta = -100
+start_alpha = 35
+"""
+start_gamma = -90
+start_beta = -60
+start_alpha = -60
+
+target_1 = 60
+target_2 = -60
+target_3 = -90
 
 
 def get_angle_by_coords(x1, y1):
@@ -73,6 +99,7 @@ def get_angle_by_coords(x1, y1):
         return pi - initial_angle
     if x1 < 0 and y1 < 0:
         return initial_angle + pi
+
 
 def turn_on_angle(x1, y1, angle):
 
@@ -274,8 +301,8 @@ class MovementHistory:
         # leg2 tetta = -45, leg3 tetta = -135, leg4 tetta = 135
 
         position = []
-        for leg in [leg1, leg4, leg3, leg2]:
-            position.append(round(rad_to_angle(leg.gamma), 2))
+        for leg in [leg1, leg2, leg3, leg4]:
+            position.append(round(rad_to_angle(leg.gamma) + phi_angle, 2))
             position.append(round(rad_to_angle(leg.beta), 2))
             position.append(-1 * round(rad_to_angle(leg.alpha), 2))
             tetta = rad_to_angle(leg.tetta)
@@ -287,6 +314,9 @@ class MovementHistory:
                 tetta += 135
             if leg == leg4:
                 tetta -= 135
+            if tetta > 270:
+                tetta -= 360
+                print('Got tetta {0}'.format(tetta))
             tetta = round(tetta, 2)
             position.append(tetta)
         self.angles_history.append(position)
@@ -296,7 +326,7 @@ class MovementHistory:
 
 
 class Leg:
-    def __init__(self, number, name, O, D, alpha, beta, gamma):
+    def __init__(self, number, name, O, D, alpha, beta, gamma, a, b, c, d):
         self.number = number
         self.name = name
         self.O = O
@@ -308,6 +338,10 @@ class Leg:
         self.alpha = alpha
         self.beta = beta
         self.gamma = gamma
+        self.a = a
+        self.b = b
+        self.c = c
+        self.d = d
         self.calculate_angles()
 
     def __str__(self):
@@ -362,24 +396,24 @@ class Leg:
         angles_pref = [self.alpha, self.beta, self.gamma]
 
         tetta = math.atan2(D.y - O.y, D.x - O.x)
-        A = Point(O.x + d * cos(tetta), O.y + d * sin(tetta), O.z)
+        A = Point(O.x + self.d * cos(tetta), O.y + self.d * sin(tetta), O.z)
         l = math.sqrt((D.x - A.x) ** 2 + (D.y - A.y) ** 2)
         delta_z = D.z - O.z
-        best_angles = get_leg_angles(l, delta_z, angles_pref)
+        best_angles = self.get_leg_angles(l, delta_z, angles_pref)
         alpha, beta, gamma = best_angles[0], best_angles[1], best_angles[2]
 
-        Bx = a * cos(alpha)
-        By = a * sin(alpha)
-        Cx = Bx + b * cos(alpha + beta)
-        Cy = By + b * sin(alpha + beta)
-        Dx = Cx + c * cos(alpha + beta + gamma)
-        Dy = Cy + c * sin(alpha + beta + gamma)
+        Bx = self.a * cos(alpha)
+        By = self.a * sin(alpha)
+        Cx = Bx + self.b * cos(alpha + beta)
+        Cy = By + self.b * sin(alpha + beta)
+        Dx = Cx + self.c * cos(alpha + beta + gamma)
+        Dy = Cy + self.c * sin(alpha + beta + gamma)
         if abs(Dx - l) > 0.01 or abs(Dy - delta_z) > 0.01:
             print('WTF')
 
-        B_xz = [a * cos(alpha), a * sin(alpha)]
-        C_xz = [B_xz[0] + b * cos(alpha + beta), B_xz[1] + b * sin(alpha + beta)]
-        D_xz = [C_xz[0] + c * cos(alpha + beta + gamma), C_xz[1] + c * sin(alpha + beta + gamma)]
+        B_xz = [self.a * cos(alpha), self.a * sin(alpha)]
+        C_xz = [B_xz[0] + self.b * cos(alpha + beta), B_xz[1] + self.b * sin(alpha + beta)]
+        D_xz = [C_xz[0] + self.c * cos(alpha + beta + gamma), C_xz[1] + self.c * sin(alpha + beta + gamma)]
 
         # print('XZ-projection. B : {0}. C : {1}. D : {2}.'.format(B_xz, C_xz, D_xz))
         D_prev = D
@@ -395,25 +429,71 @@ class Leg:
         self.tetta, self.alpha, self.beta, self.gamma = tetta, alpha, beta, gamma
         #print('After angles : {0}'.format(self))
 
+    def get_leg_angles(self, delta_x, delta_z, angles_pref):
+        #print('Looking for angles for ({0}, {1})'.format(delta_x, delta_z))
+        possible_angles = self.find_angles(delta_x, delta_z)
 
-def get_leg_angles(delta_x, delta_z, angles_pref):
-    #print('Looking for angles for ({0}, {1})'.format(delta_x, delta_z))
-    possible_angles = find_angles(delta_x, delta_z)
+        for item in possible_angles:
+            alpha = item[0]
+            beta = item[1]
+            gamma = item[2]
+            Bx = self.a * cos(alpha)
+            By = self.a * sin(alpha)
+            Cx = Bx + self.b * cos(alpha + beta)
+            Cy = By + self.b * sin(alpha + beta)
+            Dx = Cx + self.c * cos(alpha + beta + gamma)
+            Dy = Cy + self.c * sin(alpha + beta + gamma)
+            if abs(Dx - delta_x) > 0.01 or abs(Dy - delta_z) > 0.01:
+                print('WTF')
 
-    for item in possible_angles:
-        alpha = item[0]
-        beta = item[1]
-        gamma = item[2]
-        Bx = a * cos(alpha)
-        By = a * sin(alpha)
-        Cx = Bx + b * cos(alpha + beta)
-        Cy = By + b * sin(alpha + beta)
-        Dx = Cx + c * cos(alpha + beta + gamma)
-        Dy = Cy + c * sin(alpha + beta + gamma)
-        if abs(Dx - delta_x) > 0.01 or abs(Dy - delta_z) > 0.01:
-            print('WTF')
+        return get_best_angles(angles_pref, possible_angles)
 
-    return get_best_angles(angles_pref, possible_angles)
+    def find_angles(self, Dx, Dy):
+        results = []
+        full_dist = math.sqrt(Dx ** 2 + Dy ** 2)
+        if full_dist > self.a + self.b + self.c:
+            # print('No decisions. Full distance : {0}'.format(full_dist))
+            raise Exception('No decisions. Full distance : {0}'.format(full_dist))
+            # sys.exit(1)
+
+        # for k in np.arange(-35.0, 35.0, 0.1):
+        for k in np.arange(-45.0, 45.0, 0.5):
+            ksi = angle_to_rad(k)
+
+            Cx = Dx + self.c * math.cos(math.pi / 2 + ksi)
+            Cy = Dy + self.c * math.sin(math.pi / 2 + ksi)
+            dist = math.sqrt(Cx ** 2 + Cy ** 2)
+
+            if dist > self.a + self.b or dist < abs(self.a - self.b):
+                pass
+            else:
+                # print('Ksi : {0}'.format(k))
+                alpha1 = math.acos((self.a ** 2 + dist ** 2 - self.b ** 2) / (2 * self.a * dist))
+                beta1 = math.acos((self.a ** 2 + self.b ** 2 - dist ** 2) / (2 * self.a * self.b))
+                beta = -1 * (pi - beta1)
+
+                alpha2 = math.atan2(Cy, Cx)
+                alpha = alpha1 + alpha2
+
+                Bx = self.a * cos(alpha)
+                By = self.a * sin(alpha)
+
+                BD = math.sqrt((Dx - Bx) ** 2 + (Dy - By) ** 2)
+                angle_C = math.acos((self.b ** 2 + self.c ** 2 - BD ** 2) / (2 * self.b * self.c))
+
+                for coef in [-1, 1]:
+                    gamma = coef * (pi - angle_C)
+
+                    Cx = Bx + self.b * cos(alpha + beta)
+                    Cy = By + self.b * sin(alpha + beta)
+                    new_Dx = Cx + self.c * cos(alpha + beta + gamma)
+                    new_Dy = Cy + self.c * sin(alpha + beta + gamma)
+                    if abs(new_Dx - Dx) > 0.01 or abs(new_Dy - Dy) > 0.01:
+                        continue
+
+                    results.append([alpha, beta, gamma])
+
+        return results
 
 
 def angles_str(angles):
@@ -432,33 +512,8 @@ def get_best_angles(angles_pref, all_angles):
         alpha = item[0]
         beta = item[1]
         gamma = item[2]
-        if alpha < angle_to_rad(-60) or alpha > angle_to_rad(80):
-            if print_angles:
-                print('Bad alpha : {0}'.format(rad_to_angle(alpha)))
-            continue
-        if beta < angle_to_rad(-120) or beta > angle_to_rad(60):
-            if print_angles:
-                print('Bad beta : {0}'.format(rad_to_angle(beta)))
-            continue
-        if (alpha + beta < angle_to_rad(-90)) or (alpha + beta > angle_to_rad(60)):
-            if print_angles:
-                print('Bad alpha + beta : {0}'.format(rad_to_angle(alpha + beta)))
-            continue
-        #if gamma < angle_to_rad(-120) or gamma > angle_to_rad(15):
-        if beta + gamma < angle_to_rad(-160):
-            if print_angles:
-                print('Bad beta + gamma : {0}'.format(rad_to_angle(beta + gamma)))
-            continue
-        if gamma < angle_to_rad(-120) or gamma > angle_to_rad(15):
-            if print_angles:
-                print('Bad gamma : {0}'.format(rad_to_angle(gamma)))
-            continue
-        if (alpha + beta + gamma < angle_to_rad(-150)) or (alpha + beta + gamma > angle_to_rad(-55)):
-            if print_angles:
-                print('Bad alpha + beta + gamma : {0}'.format(rad_to_angle(alpha + beta + gamma)))
-            continue
-        cur_distance = get_angles_distance(item, angles_pref)
-        cur_distance += 10 * get_angles_distance(item, [start_alpha, start_beta, start_gamma])
+
+        cur_distance = get_angles_distance_2(item)
         # print('Angles : {0}. Distance : {1}'.format(angles_str(item), cur_distance))
         if cur_distance <= min_distance:
             min_distance = cur_distance
@@ -468,62 +523,25 @@ def get_best_angles(angles_pref, all_angles):
         #print('No suitable angles found. Halt')
         raise Exception('No angles')
         # sys.exit(1)
+    #distance = get_angles_distance(best_angles, angles_pref)
+    #if distance > 2.5:
+    #    print(distance)
     return best_angles
 
 
-def find_angles(Dx, Dy):
-    results = []
-    full_dist = math.sqrt(Dx ** 2 + Dy ** 2)
-    if full_dist > a + b + c:
-        #print('No decisions. Full distance : {0}'.format(full_dist))
-        raise Exception('No decisions. Full distance : {0}'.format(full_dist))
-        #sys.exit(1)
 
-    #for k in np.arange(-35.0, 35.0, 0.1):
-    for k in np.arange(-45.0, 45.0, 0.5):
-        ksi = angle_to_rad(k)
-
-        Cx = Dx + c * math.cos(math.pi / 2 + ksi)
-        Cy = Dy + c * math.sin(math.pi / 2 + ksi)
-        dist = math.sqrt(Cx ** 2 + Cy ** 2)
-
-        if dist > a + b or dist < abs(a - b):
-            pass
-        else:
-            # print('Ksi : {0}'.format(k))
-            alpha1 = math.acos((a ** 2 + dist ** 2 - b ** 2) / (2 * a * dist))
-            beta1 = math.acos((a ** 2 + b ** 2 - dist ** 2) / (2 * a * b))
-            beta = -1 * (pi - beta1)
-
-            alpha2 = math.atan2(Cy, Cx)
-            alpha = alpha1 + alpha2
-
-            Bx = a * cos(alpha)
-            By = a * sin(alpha)
-
-            BD = math.sqrt((Dx - Bx) ** 2 + (Dy - By) ** 2)
-            angle_C = math.acos((b ** 2 + c ** 2 - BD ** 2) / (2 * b * c))
-
-            for coef in [-1, 1]:
-                gamma = coef * (pi - angle_C)
-
-                Cx = Bx + b * cos(alpha + beta)
-                Cy = By + b * sin(alpha + beta)
-                new_Dx = Cx + c * cos(alpha + beta + gamma)
-                new_Dy = Cy + c * sin(alpha + beta + gamma)
-                if abs(new_Dx - Dx) > 0.01 or abs(new_Dy - Dy) > 0.01:
-                    continue
-
-                results.append([alpha, beta, gamma])
-
-    return results
 
 
 def get_angles_distance(angles1, angles2):
-    # weight of gamma is 1.5 !!!
     return math.sqrt((angles1[0] - angles2[0]) ** 2 +
                      (angles1[1] - angles2[1]) ** 2 +
-                     1.5 * (angles1[2] - angles2[2]) ** 2)
+                     (angles1[2] - angles2[2]) ** 2)
+
+
+def get_angles_distance_2(angles1):
+    return math.sqrt((angles1[0] - angle_to_rad(target_1)) ** 2 +
+                     (angles1[0] + angles1[1] - angle_to_rad(target_2)) ** 2 +
+                     (angles1[0] + angles1[1] + angles1[2] - angle_to_rad(target_3)) ** 2)
 
 ###########################################################################
 
@@ -785,7 +803,7 @@ class MovementSequence:
 
     def print_to_sequence_file(self):
         with open(sequence_file, 'w') as f:
-            f.write('\n'.join(str(x) for x in self.angles_history))
+            f.write('\n'.join(str(x) for x in self.mh.angles_history))
 
     def run_animation(self):
         animate(self.lines_history)
@@ -808,22 +826,32 @@ def ms_to_array(ms):
 
 
 def create_new_ms(step=0.5, ms_array=None):
+
+    a = 10.5
+    b = 5.4
+    c = 11.1
+    d = 5.4
+
     if ms_array is None:
-        O1 = Point(4.5, 4.5, 0)
+        O1 = Point(4.0, 4.0, 0)
         D1 = Point(k, k, ground_z)
-        Leg1 = Leg(1, "Leg1", O1, D1, angle_to_rad(start_alpha), angle_to_rad(start_beta), angle_to_rad(start_gamma))
+        Leg1 = Leg(1, "Leg1", O1, D1, angle_to_rad(start_alpha), angle_to_rad(start_beta), angle_to_rad(start_gamma),
+                   a, b, c, d)
 
-        O2 = Point(4.5, -4.5, 0)
+        O2 = Point(4.0, -4.0, 0)
         D2 = Point(k, -k, ground_z)
-        Leg2 = Leg(2, "Leg2", O2, D2, angle_to_rad(start_alpha), angle_to_rad(start_beta), angle_to_rad(start_gamma))
+        Leg2 = Leg(2, "Leg2", O2, D2, angle_to_rad(start_alpha), angle_to_rad(start_beta), angle_to_rad(start_gamma),
+                   a, b, c, d)
 
-        O3 = Point(-4.5, -4.5, 0)
+        O3 = Point(-4.0, -4.0, 0)
         D3 = Point(-k, -k, ground_z)
-        Leg3 = Leg(3, "Leg3", O3, D3, angle_to_rad(start_alpha), angle_to_rad(start_beta), angle_to_rad(start_gamma))
+        Leg3 = Leg(3, "Leg3", O3, D3, angle_to_rad(start_alpha), angle_to_rad(start_beta), angle_to_rad(start_gamma),
+                   a, b, c, d)
 
-        O4 = Point(-4.5, 4.5, 0)
+        O4 = Point(-4.0, 4.0, 0)
         D4 = Point(-k, k, ground_z)
-        Leg4 = Leg(4, "Leg4", O4, D4, angle_to_rad(start_alpha), angle_to_rad(start_beta), angle_to_rad(start_gamma))
+        Leg4 = Leg(4, "Leg4", O4, D4, angle_to_rad(start_alpha), angle_to_rad(start_beta), angle_to_rad(start_gamma),
+                   a, b, c, d)
     else:
         for i in range(4):
             leg = ms_array[i]
@@ -857,7 +885,7 @@ def body_compensation(ms, leg_num, return_value=0):
 
     total_results = []
     prev_best_result = 0
-    for i in range(20):
+    for i in range(30):
         if i == 0:
             results = compensation_iteration_v2(ms1, i+1)
         else:
@@ -875,6 +903,7 @@ def body_compensation(ms, leg_num, return_value=0):
 
     for item in total_results:
         #print('Checking {0}'.format(item))
+        #if item[0] > 1:
         if item[0] > 1:
             raise Exception('Bad attempt : {0}'.format(item[0]))
         try:
@@ -899,25 +928,27 @@ def body_compensation(ms, leg_num, return_value=0):
 def compensation_iteration_v2(ms1, iternum, x=0, y=0):
     results = []
     step = 0.5
-    mult = 1
+    mult = 5
 
     tries_x = np.arange(x - mult*step, x + mult*step + 0.1, step)
     tries_y = np.arange(y - mult*step, y + mult*step + 0.1, step)
 
     for i in tries_x:
         for j in tries_y:
-
+            #print('Trying Move ({0}, {1})'.format(i, j))
             ms2 = copy.deepcopy(ms1)
             try:
                 for leg in ms2.Legs:
+                    #print('Leg : {0}'.format(leg.number))
                     leg.move_mount_point(i, j, 0)
                     leg.calculate_angles()
             except:
+                #print('Failed')
                 continue
 
             ms2.calculate_unsupporting_leg()
             distance = ms2.distances_to_margin[0] + ms2.distances_to_margin[1]
-
+            #print('Succesful. Distance : {0}'.format(distance))
             results.append([distance, i, j])
 
     return results
@@ -956,16 +987,18 @@ def compensated_leg_movement(ms, leg_num, leg_delta):
 
 
 def leg_move_with_compensation(ms, leg_num, delta_x, delta_y):
+    print('Leg {0} started'.format(leg_num))
     body_compensation(ms, leg_num)
-    compensated_leg_movement(ms, leg_num, [0, 0, z_up])
-    compensated_leg_movement(ms, leg_num, [delta_x, delta_y, 0])
+    #compensated_leg_movement(ms, leg_num, [0, 0, z_up])
+    #compensated_leg_movement(ms, leg_num, [delta_x, delta_y, 0])
+    compensated_leg_movement(ms, leg_num, [delta_x, delta_y, z_up])
     compensated_leg_movement(ms, leg_num, [0, 0, -z_up])
 
 
 def turn_body(ms, angle_deg):
     angle = angle_to_rad(angle_deg)
     # move leg one by one
-    for leg in [ms.Leg1, ms.Leg3, ms.Leg2, ms.Leg4]:
+    for leg in [ms.Leg1, ms.Leg2, ms.Leg3, ms.Leg4]:
         x_new, y_new = turn_on_angle(leg.D.x, leg.D.y, angle)
         delta_x = x_new - leg.D.x
         delta_y = y_new - leg.D.y
@@ -982,7 +1015,7 @@ def move_body_straight(ms, delta_x, delta_y, leg_seq=[1, 2, 3, 4], body_to_cente
     if body_to_center:
         ms.body_to_center()
 
-
+"""
 for _i in [2, 4, 5, 6, 7, 8]:
     for _k in [16, 18, 20, 22]:
         for _z in [-5, -10, -15, -20]:
@@ -1020,4 +1053,31 @@ for _i in [2, 4, 5, 6, 7, 8]:
                                                 _z,
                                                 _a,
                                                 _b))
+"""
 
+ms = create_new_ms(step=0.5)
+#print(ms_to_array(ms))
+
+z = 6
+
+
+try:
+    #print('------------------------------------------------------- 1 ------------------------------------------------')
+    #ms.body_movement(0, 0, z)
+    #print('------------------------------------------------------- 2 ------------------------------------------------')
+    #move_body_straight(ms, 7, 0, leg_seq=[3, 4, 1, 2])
+    #move_body_straight(ms, 0, 7, leg_seq=[1, 2, 3, 4])
+    #move_body_straight(ms, -5, 5, leg_seq=[3, 4, 1, 2], body_to_center=True)
+    #move_body_straight(ms, -8, 0, leg_seq=[4, 3, 2, 1], body_to_center=True)
+    #move_body_straight(ms, 0, -8, leg_seq=[2, 3, 1, 4], body_to_center=True)
+    #move_body_straight(ms, 8, 0, leg_seq=[1, 2, 3, 4], body_to_center=True)
+    turn_body(ms, 30)
+    #ms.body_to_center()
+    #ms.body_movement(0, 0, -z)
+    ms.print_to_sequence_file()
+except:
+    pass
+    print('Fail')
+
+
+ms.run_animation()
