@@ -4,17 +4,11 @@ import requests
 import sys
 import time
 import argparse
-import pigpio
-sys.path.append('/nexus/fenix/')
-from common.BasicConfig import BasicConfig
+import pigpio                           
 
 
-#cfg = BasicConfig()
-#sequence_file = cfg.sequence_file
-#sequence_file = 'C:\\Users\\Sergey\\PycharmProjects\\fenix\\wrk\\sequence.txt'
-#sequence_path = "D:\\Development\\Python\\"
-wrk_path = '/nexus/fenix/wrk/'
-sequence_path = '/nexus/fenix/wrk/sequences/'
+wrk_path = '/fenix/wrk/'
+sequence_path = '/fenix/static/sequences/'
 sequence_dict = {
     'Back': 'sq_backw_8',
     'LeftBackwards': 'sq_backw_left_5',
