@@ -1,0 +1,6 @@
+Adafruit_GPIO
+Adafruit_MCP3008
+RPi.GPIO
+smbus
+requests
+pigpio
