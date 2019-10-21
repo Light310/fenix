@@ -4,6 +4,7 @@ import requests
 import sys
 import time
 import argparse
+import os
 import pigpio
 
 wrk_path = '/fenix/tmp/'
@@ -79,7 +80,7 @@ class FenixServos(threading.Thread):
                 logging.info('Servo_data not yet defined. Skipping')
                 time.sleep(servo_signal_sleep)
                 continue
-            calibrated_data = []
+            #calibrated_data = []
             for i in range(16):
                 calibrated_servo = self.calibrate_servo(i, servo_data[i])
                 pulse_width = int(MIN_WIDTH + (MAX_WIDTH - MIN_WIDTH) * calibrated_servo / MAX_DIFF)
@@ -124,35 +125,66 @@ def read_speed():
         time.sleep(0.5)
 
 
+def execute_sequence(command):
+    global servo_data
 
-def execute_sequence():
-    global servo_data, stop_thread
+    sequence = sequence_dict[command]
+
+    logging.info(f'Running sequence : {command}')
+    for index in range(len(sequence)):
+        item = sequence[index]
+        servo_data = [float(s) for s in item.split(',')]
+        logging.info("Angles : {0}".format(servo_data))
+        if command in ['Activate', 'Deactivate']:
+            time.sleep(fixed_sequence_sleep_time)
+        else:
+            time.sleep(sequence_sleep_time)
+
+
+def run_command():
+    global stop_thread
 
     time.sleep(1.0)
+    active, shutdown = False, False
 
-    command = 'Activate'
-    activation = True
+    while True:
+        if shutdown:
+            print('Shutting down')
+            break
 
-    while True and command != 'Deactivate':
-        if activation:
-            activation = False
-        else:
-            command = read_command()
+        command = read_command()
+
+        if command == 'Exit':
+            shutdown = True
+            command = 'Deactivate'
+            print('Got command to shut down')
 
         if command == 'None':
             time.sleep(0.5)
-        else:
-            sequence = sequence_dict[command]
+            continue
 
-            logging.info(f'Running sequence : {command}')
-            for index in range(len(sequence)):
-                item = sequence[index]
-                servo_data = [float(s) for s in item.split(',')]
-                logging.info("Angles : {0}".format(servo_data))
-                if command in ['act', 'deact']:
-                    time.sleep(fixed_sequence_sleep_time)
-                else:
-                    time.sleep(sequence_sleep_time)
+        if not active and command != 'Activate':
+            print(f'Ignoring command {command}, while not Active')
+            time.sleep(0.5)
+            continue
+
+        if command == 'Activate':
+            if active:
+                print('Active, but got command to activate, skipping')
+                time.sleep(0.5)
+                continue
+            print('Processing command to activate')
+            active = True        
+
+        if command == 'Deactivate':
+            if not active:
+                print('Not Active, but got command to deactivate, skipping')
+                time.sleep(0.5)
+                continue
+            active = False
+            print('Processing command to deactivate')
+
+        execute_sequence(command)
 
     stop_thread = True
 
@@ -167,8 +199,10 @@ if __name__ == "__main__":
 
     logging.info('Starting movement.')
     try:
+        os.system("sudo pigpiod")
+        time.sleep(1.0)
         servos_thread = FenixServos()
-        x = threading.Thread(target=execute_sequence)
+        x = threading.Thread(target=run_command)
         x.start()
 
         y = threading.Thread(target=read_speed)
@@ -180,4 +214,5 @@ if __name__ == "__main__":
         servos_thread.join()
     finally:
         del servos_thread
+        os.system("sudo killall pigpiod")
         logging.info('Movement complete')
