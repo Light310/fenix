@@ -10,12 +10,12 @@ import pigpio
 wrk_path = '/fenix/tmp/'
 sequence_path = '/fenix/static/sequences/'
 sequence_dict = {
-    'Back': 'sq_backw_8',
+    'Back': 'sq_backw_8',    
+    'Forward': 'sq_forw_8',
     'LeftBackwards': 'sq_backw_left_5',
     'RightBackwards': 'sq_backw_right_5',
-    'Forward': 'sq_forw_8',
     'LeftForward': 'sq_forw_left_5',
-    'RightForward': 'sq_forw_right_5',
+    'RightForward': 'sq_forw_right_5',    
     'StrafeLeft': 'sq_strafe_left_8',
     'StrafeRight': 'sq_strafe_right_8',
     'TurnRight': 'sq_turn_cw_30',
@@ -23,6 +23,12 @@ sequence_dict = {
     'Activate': 'sq_activation',
     'Deactivate': 'sq_deactivation'
 }
+"""
+'LeftBackwards': 'look_down_3',
+'RightBackwards': 'look_up_3',
+'LeftForward': 'look_down_6',
+'RightForward': 'look_up_6',
+"""
 
 command_file = f'{wrk_path}command.txt'
 speed_file = f'{wrk_path}speed.txt'
@@ -32,7 +38,7 @@ calibration_dict = [
     [183, 95], [175, 89], [183, 94], [141, 90],
     [178, 95], [177, 90], [187, 95], [138, 94],
     [182, 95], [182, 90], [177, 99], [129, 92],
-    [192, 95], [182, 95], [185, 93], [135, 90]
+    [197, 95], [187, 95], [185, 93], [135, 90]
 ]
 
 MIN_WIDTH = 500
@@ -201,6 +207,9 @@ if __name__ == "__main__":
     try:
         os.system("sudo pigpiod")
         time.sleep(1.0)
+    except Exception as e:
+        print('Exception : ', e)
+    try:                
         servos_thread = FenixServos()
         x = threading.Thread(target=run_command)
         x.start()
@@ -214,5 +223,5 @@ if __name__ == "__main__":
         servos_thread.join()
     finally:
         del servos_thread
-        os.system("sudo killall pigpiod")
+        #os.system("sudo killall pigpiod")
         logging.info('Movement complete')
