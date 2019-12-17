@@ -12,24 +12,14 @@ import time
 import random
 import pigpio
 
+"""
 calibration_dict = [
-    [183, 95],
-    [175, 89],
-    [183, 94],
-    [141, 90],
-    [178, 95],
-    [177, 90],
-    [187, 95],
-    [138, 94],
-    [182, 95],
-    [182, 90],
-    [177, 99],
-    [129, 92],
-    [192, 95],
-    [182, 95],
-    [185, 93],
-    [135, 90]
+    [183, 95], [175, 89], [183, 94], [141, 90],
+    [178, 95], [177, 90], [187, 95], [138, 94],
+    [182, 95], [182, 90], [177, 99], [129, 92],
+    [197, 95], [187, 95], [185, 93], [135, 90]
 ]
+"""
 
 
 def calibrate(i, input_value):
@@ -61,13 +51,24 @@ pi = pigpio.pi()
 if not pi.connected:
     exit()
 
+def read_calibration_dict():    
+    with open ('/fenix/wrk/calibration_dict.txt', 'r') as f:
+        contents = [x.strip().split(',') for x in f.readlines()]
+
+    for k, v in enumerate(contents):
+        contents[k] = [int(x) for x in v]
+
+    return contents
+
 while True:
     # for i in range (1, 2):
     try:
         try:
-            with open('/nexus/fenix/wrk/servos.txt') as f:
+            with open('/fenix/wrk/servos.txt') as f:
                 servo_data = [float(s) for s in f.read().split(',')]
             f.closed
+
+            calibration_dict = read_calibration_dict()
 
             for i in range(0, len(servo_data)):
                 output_seq[i] = calibrate(i, servo_data[i])
