@@ -23,7 +23,13 @@ calibration_dict = [
 
 
 def calibrate(i, input_value):
-    #print('input : {0}, i : {1}, input_value * calibration_dict[i][1]*1.0 / 90, {2} + calibration_dict[i][0] = {3}'.format(input_value, i, input_value * calibration_dict[i][1]*1.0 / 90, calibration_dict[i][0])) 
+    if i == 11:
+        calibration_positive = 84.0
+        calibration_negative = 100.0
+        if input_value > 0:
+            return round(calibration_dict[i][0] + (input_value * calibration_positive / 90), 4)
+        else:
+            return round(calibration_dict[i][0] + (input_value * calibration_negative / 90), 4)
     return round(calibration_dict[i][0] + (input_value * calibration_dict[i][1]*1.0 / 90), 4)
 
 
