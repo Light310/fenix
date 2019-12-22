@@ -34,11 +34,31 @@ command_file = f'{wrk_path}command.txt'
 speed_file = f'{wrk_path}speed.txt'
 log_file = f'{wrk_path}movement.log'
 
+"""
 calibration_dict = [
     [183, 95], [175, 89], [183, 94], [141, 90],
     [178, 95], [177, 90], [187, 95], [138, 94],
     [182, 95], [182, 90], [177, 99], [129, 92],
     [197, 95], [187, 95], [185, 93], [135, 90]
+]
+"""
+calibration_dict = [
+    [133, 90],
+    [129, 90],
+    [135, 94],
+    [139, 89],
+    [132, 90],
+    [132, 91],
+    [135, 93],
+    [140, 92],
+    [135, 90],
+    [135, 90],
+    [128, 90],
+    [135, 90],
+    [135, 90],
+    [135, 90],
+    [135, 95],
+    [135, 90]
 ]
 
 MIN_WIDTH = 500
@@ -90,18 +110,22 @@ class FenixServos(threading.Thread):
             for i in range(16):
                 calibrated_servo = self.calibrate_servo(i, servo_data[i])
                 pulse_width = int(MIN_WIDTH + (MAX_WIDTH - MIN_WIDTH) * calibrated_servo / MAX_DIFF)
-                #pulse_width = max(min(pulse_width, MAX_WIDTH), MIN_WIDTH) # wtf?
                 self.pi.set_servo_pulsewidth(servo_list[i], pulse_width)
-                #calibrated_data.append(calibrated_servo)
-            #logging.info('Initial    data : {0}'.format(servo_data))
-            #logging.info('Calibrated data : {0}'.format(calibrated_data))
             if stop_thread:
                 break
             time.sleep(servo_signal_sleep)
 
     @staticmethod
     def calibrate_servo(i, input_value):
-        return round(calibration_dict[i][0] + (input_value * calibration_dict[i][1] * 1.0 / 90), 4)
+        # servo 12 got too bad diff between positive and negative direction, overriding
+        if i == 11:            
+            calibration_positive = 84.0
+            calibration_negative = 100.0
+            if input_value > 0:
+                return round(calibration_dict[i][0] + (input_value * calibration_positive / 90), 4)
+            else:
+                return round(calibration_dict[i][0] + (input_value * calibration_negative / 90), 4)
+        return round(calibration_dict[i][0] + (input_value * calibration_dict[i][1]*1.0 / 90), 4)
 
     def __del__(self):
         logging.info("Closing pigpio connection")
