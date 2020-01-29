@@ -11,27 +11,7 @@ import sys
 import time
 import random
 import pigpio
-
-"""
-calibration_dict = [
-    [183, 95], [175, 89], [183, 94], [141, 90],
-    [178, 95], [177, 90], [187, 95], [138, 94],
-    [182, 95], [182, 90], [177, 99], [129, 92],
-    [197, 95], [187, 95], [185, 93], [135, 90]
-]
-"""
-
-
-def calibrate(i, input_value):
-    if i == 11:
-        calibration_positive = 84.0
-        calibration_negative = 100.0
-        if input_value > 0:
-            return round(calibration_dict[i][0] + (input_value * calibration_positive / 90), 4)
-        else:
-            return round(calibration_dict[i][0] + (input_value * calibration_negative / 90), 4)
-    return round(calibration_dict[i][0] + (input_value * calibration_dict[i][1]*1.0 / 90), 4)
-
+from calibration import calibrate
 
 output_seq = [None] * 16
 
