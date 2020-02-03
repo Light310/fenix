@@ -6,16 +6,17 @@ import time
 import argparse
 import os
 import pigpio
+from modules.calibration import calibrate
 
 wrk_path = '/fenix/tmp/'
 sequence_path = '/fenix/static/sequences/'
 sequence_dict = {
     'Back': 'sq_backw_8',    
     'Forward': 'sq_forw_8',
-    'LeftBackwards': 'sq_backw_left_5',
-    'RightBackwards': 'sq_backw_right_5',
-    'LeftForward': 'sq_forw_left_5',
-    'RightForward': 'sq_forw_right_5',    
+    'LeftBackwards': 'yaw',
+    'RightBackwards': 'yaw',
+    'LeftForward': 'look_down_6',
+    'RightForward': 'look_up_6',    
     'StrafeLeft': 'sq_strafe_left_8',
     'StrafeRight': 'sq_strafe_right_8',
     'TurnRight': 'sq_turn_cw_30',
@@ -34,40 +35,13 @@ command_file = f'{wrk_path}command.txt'
 speed_file = f'{wrk_path}speed.txt'
 log_file = f'{wrk_path}movement.log'
 
-"""
-calibration_dict = [
-    [183, 95], [175, 89], [183, 94], [141, 90],
-    [178, 95], [177, 90], [187, 95], [138, 94],
-    [182, 95], [182, 90], [177, 99], [129, 92],
-    [197, 95], [187, 95], [185, 93], [135, 90]
-]
-"""
-calibration_dict = [
-    [133, 90],
-    [129, 90],
-    [135, 89],
-    [139, 89],
-    [132, 90],
-    [132, 91],
-    [135, 89],
-    [140, 92],
-    [135, 90],
-    [135, 90],
-    [128, 90],
-    [135, 90],
-    [135, 90],
-    [135, 90],
-    [126, 90],
-    [135, 90]
-]
-
 MIN_WIDTH = 500
 MAX_WIDTH = 2500
 MAX_DIFF = 270  # angle 0 to 270
 servo_signal_sleep = 0.035
 servo_list = [4, 17, 27, 22, 18, 23, 24, 25, 6, 13, 19, 26, 12, 16, 20, 21]
 sequence_sleep_time = 0.035
-fixed_sequence_sleep_time = 0.035
+fixed_sequence_sleep_time = 0.05
 global stop_thread
 stop_thread = False
 
@@ -106,9 +80,9 @@ class FenixServos(threading.Thread):
                 logging.info('Servo_data not yet defined. Skipping')
                 time.sleep(servo_signal_sleep)
                 continue
-            #calibrated_data = []
+            
             for i in range(16):
-                calibrated_servo = self.calibrate_servo(i, servo_data[i])
+                calibrated_servo = calibrate(i, servo_data[i])
                 pulse_width = int(MIN_WIDTH + (MAX_WIDTH - MIN_WIDTH) * calibrated_servo / MAX_DIFF)
                 if pulse_width > 2500 or pulse_width < 500:
                     print(i, servo_data[i], pulse_width)
@@ -116,18 +90,6 @@ class FenixServos(threading.Thread):
             if stop_thread:
                 break
             time.sleep(servo_signal_sleep)
-
-    @staticmethod
-    def calibrate_servo(i, input_value):
-        # servo 12 got too bad diff between positive and negative direction, overriding
-        if i == 11:            
-            calibration_positive = 84.0
-            calibration_negative = 100.0
-            if input_value > 0:
-                return round(calibration_dict[i][0] + (input_value * calibration_positive / 90), 4)
-            else:
-                return round(calibration_dict[i][0] + (input_value * calibration_negative / 90), 4)
-        return round(calibration_dict[i][0] + (input_value * calibration_dict[i][1]*1.0 / 90), 4)
 
     def __del__(self):
         logging.info("Closing pigpio connection")
