@@ -23,7 +23,7 @@ MAX_DIFF = 270  # angle 0 to 270
 servo_signal_sleep = 0.035
 servo_list = [4, 17, 27, 22, 18, 23, 24, 25, 6, 13, 19, 26, 12, 16, 20, 21]
 sequence_sleep_time = 0.035
-fixed_sequence_sleep_time = 0.01
+fixed_sequence_sleep_time = 0.02
 global stop_thread
 stop_thread = False
 
