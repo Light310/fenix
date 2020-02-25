@@ -9,6 +9,8 @@ import pigpio
 from os import listdir
 from os.path import isfile, join
 from modules.calibration import calibrate
+from modules.pwm_led import PWM_LED
+
 
 wrk_path = '/fenix/tmp/'
 sequence_path = '/fenix/static/sequences/'
@@ -112,7 +114,13 @@ def execute_sequence(sequence_name):
     global servo_data
 
     logging.info(f'Running sequence : {sequence_name}')
-    sequence = sequence_dict[sequence_name]
+    sequence = sequence_dict[sequence_name]         
+    print(f'Running sequence : {sequence_name}')
+
+    if sequence_name == 'sq_up_3_10':
+        led.blink(2, 0.007)
+        time.sleep(1)
+        led.set_duty_cycle(100, instant=True)
 
     for servo_data in sequence:
         logging.info("Angles : {0}".format(servo_data))
@@ -121,6 +129,9 @@ def execute_sequence(sequence_name):
             time.sleep(fixed_sequence_sleep_time)
         else:
             time.sleep(sequence_sleep_time)
+    
+    if 'sq_down' in sequence_name and '_3' in sequence_name:
+        led.set_duty_cycle(0)
 
 def get_sequence(command, state):
     grounds_z = [3, 10, 15, 20]
@@ -187,7 +198,10 @@ if __name__ == "__main__":
         time.sleep(1.0)
     except Exception as e:
         print('Exception : ', e)
-    try:                
+    try: 
+        global led               
+        led = PWM_LED(10)                
+
         servos_thread = FenixServos()
         x = threading.Thread(target=run_command)
         x.start()
