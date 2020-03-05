@@ -22,7 +22,7 @@ log_file = f'{wrk_path}movement.log'
 MIN_WIDTH = 500
 MAX_WIDTH = 2500
 MAX_DIFF = 270  # angle 0 to 270
-servo_signal_sleep = 0.035
+servo_signal_sleep = 0.002
 servo_list = [4, 17, 27, 22, 18, 23, 24, 25, 6, 13, 19, 26, 12, 16, 20, 21]
 sequence_sleep_time = 0.035
 fixed_sequence_sleep_time = 0.02
@@ -118,13 +118,14 @@ def execute_sequence(sequence_name):
     print(f'Running sequence : {sequence_name}')
 
     if sequence_name == 'sq_up_3_10':
-        led.blink(2, 0.007)
+        led.blink(2, 0.01)
         time.sleep(1)
         led.set_duty_cycle(100, instant=True)
 
     for servo_data in sequence:
         logging.info("Angles : {0}".format(servo_data))
-        slow_movement = ['up', 'down', 'look']
+        #slow_movement = ['up', 'down', 'look']
+        slow_movement = ['up', 'down']
         if any(x in sequence_name for x in slow_movement):
             time.sleep(fixed_sequence_sleep_time)
         else:
