@@ -167,6 +167,91 @@ calibration_o07 = {
     105: 110
     }
 }
+
+calibration_o08 = {
+    'zero':132, 
+    'calibration':{
+   -105: -105,
+    -90: -90,
+    -75: -75,
+    -60: -60,
+    -45: -45,
+    -30: -30,
+    -15: -15,
+      0: 0,
+     15: 15,
+     30: 30,
+     45: 45,
+     60: 60,
+     75: 75,
+     90: 90,
+    105: 105
+    }
+}
+
+calibration_o09 = {
+    'zero':140, 
+    'calibration':{
+   -105: -105,
+    -90: -90,
+    -75: -75,
+    -60: -60,
+    -45: -45,
+    -30: -30,
+    -15: -15,
+      0: 0,
+     15: 15,
+     30: 30,
+     45: 45,
+     60: 60,
+     75: 75,
+     90: 90,
+    105: 105
+    }
+}
+
+calibration_o10 = {
+    'zero':135, 
+    'calibration':{
+   -105: -105,
+    -90: -90,
+    -75: -75,
+    -60: -60,
+    -45: -45,
+    -30: -30,
+    -15: -15,
+      0: 0,
+     15: 15,
+     30: 30,
+     45: 45,
+     60: 60,
+     75: 75,
+     90: 90,
+    105: 105
+    }
+}
+
+calibration_o11 = {
+    'zero':135, 
+    'calibration':{
+   -105: -105,
+    -90: -90,
+    -75: -75,
+    -60: -60,
+    -45: -45,
+    -30: -30,
+    -15: -15,
+      0: 0,
+     15: 15,
+     30: 30,
+     45: 45,
+     60: 60,
+     75: 75,
+     90: 90,
+    105: 105
+    }
+}
+"""
 calibration_o08 = {
     'zero':141.5, 
     'calibration':{
@@ -250,7 +335,7 @@ calibration_o11 = {
     105: 105
     }
 }
-
+"""
 calibration_o12 = {
     'zero':138, 
     'calibration':{
@@ -395,6 +480,9 @@ def calculate_indent(i, target_value):
     pct = (target_value - lower_border) / (upper_border - lower_border)
     value_updated = (1 - pct) * lower_value + pct * upper_value
     return target_value * (target_value / value_updated)
+    
 	
 def calibrate(i, target_value):
-    return (round(calibration_dicts[i]['zero'] + calculate_indent(i, target_value), 4))
+    #return (round(calibration_dicts[i]['zero'] + calculate_indent(i, target_value), 4))
+    # crunch to ignore indent, only use zero offset
+    return (round(calibration_dicts[i]['zero'] + target_value, 4))

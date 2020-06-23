@@ -5,11 +5,14 @@ import sys
 import time
 import argparse
 import os
+import datetime
 import pigpio
 from os import listdir
 from os.path import isfile, join
 from modules.calibration import calibrate
 from modules.pwm_led import PWM_LED
+from mpu_thread import fenix_imus
+from modules.planes import angle_between_planes
 
 
 wrk_path = '/fenix/tmp/'
@@ -64,13 +67,23 @@ class FenixServos(threading.Thread):
         self.start()
 
     def run(self):
-        global stop_thread, servo_data
+        global stop_thread, servo_data, imus
         time.sleep(sequence_sleep_time)
         while True:
             if 'servo_data' not in globals():
-                logging.info('Servo_data not yet defined. Skipping')
+                #logging.info('Servo_data not yet defined. Skipping')
                 time.sleep(servo_signal_sleep)
-                continue
+                continue            
+
+            all_angles = imus.angles
+            joint1 = angle_between_planes([all_angles[0][0], all_angles[0][1]], [all_angles[1][0], all_angles[1][1]])
+            joint2 = angle_between_planes([all_angles[1][0], all_angles[1][1]], [all_angles[2][0], all_angles[2][1]])
+            joint3 = angle_between_planes([all_angles[2][0], all_angles[2][1]], [all_angles[3][0], all_angles[3][1]])
+            
+            logging.info('mpus  : {0}'.format(imus.real_angles))
+            logging.info('servos: {0}'.format(servo_data[8:12]))
+            logging.info('planes: {0}'.format([round(joint1, 2), round(joint2, 2), round(joint3, 2)]))
+            logging.info('----------------------------------')
             
             for i in range(16):
                 calibrated_servo = calibrate(i, servo_data[i])
@@ -117,13 +130,14 @@ def execute_sequence(sequence_name):
     sequence = sequence_dict[sequence_name]         
     print(f'Running sequence : {sequence_name}')
 
+    """
     if sequence_name == 'sq_up_3_10':
         led.blink(2, 0.01)
         time.sleep(1)
         led.set_duty_cycle(100, instant=True)
-
+    """
     for servo_data in sequence:
-        logging.info("Angles : {0}".format(servo_data))
+        #logging.info("Angles : {0}".format(servo_data))
         #slow_movement = ['up', 'down', 'look']
         slow_movement = ['up', 'down']
         if any(x in sequence_name for x in slow_movement):
@@ -135,7 +149,8 @@ def execute_sequence(sequence_name):
         led.set_duty_cycle(0)
 
 def get_sequence(command, state):
-    grounds_z = [3, 10, 15, 20]
+    #grounds_z = [3, 10, 15, 20]
+    grounds_z = [9, 15]
 
     if state == 0 and command != 'up':
         return None, state
@@ -200,8 +215,10 @@ if __name__ == "__main__":
     except Exception as e:
         print('Exception : ', e)
     try: 
-        global led               
+        global led, imus               
         led = PWM_LED(10)                
+        imus = fenix_imus()
+        imus.start()
 
         servos_thread = FenixServos()
         x = threading.Thread(target=run_command)
@@ -218,3 +235,4 @@ if __name__ == "__main__":
         del servos_thread
         #os.system("sudo killall pigpiod")
         logging.info('Movement complete')
+        imus.stop()

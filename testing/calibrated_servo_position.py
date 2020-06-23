@@ -37,15 +37,6 @@ pi = pigpio.pi()
 if not pi.connected:
     exit()
 
-def read_calibration_dict():    
-    with open ('/fenix/wrk/calibration_dict.txt', 'r') as f:
-        contents = [x.strip().split(',') for x in f.readlines()]
-
-    for k, v in enumerate(contents):
-        contents[k] = [int(x) for x in v]
-
-    return contents
-
 while True:
     # for i in range (1, 2):
     try:
@@ -53,8 +44,6 @@ while True:
             with open('/fenix/wrk/servos.txt') as f:
                 servo_data = [float(s) for s in f.read().split(',')]
             f.closed
-
-            calibration_dict = read_calibration_dict()
 
             for i in range(0, len(servo_data)):
                 output_seq[i] = calibrate(i, servo_data[i])
