@@ -16,7 +16,7 @@ while True:
     sequence = get_values_for_servos(command)
 
     for item in sequence:
-        #fnx.set_servo_values(item)
-        time.sleep(0.1)
+        fnx.set_servo_values(item)
+        time.sleep(0.01)
 
     time.sleep(10)

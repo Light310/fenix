@@ -2,8 +2,8 @@ from cyber_core.dark_kinematics import create_new_ms, move_body_straight, compen
 
 
 def calculate_sequence(movement):
-    step_len = 8
-    ground_z = -9
+    step_len = 6
+    ground_z = -7
     k = 16
 
     if movement == 'up':
@@ -12,8 +12,10 @@ def calculate_sequence(movement):
 
     if movement == 'forward':
         #move_body_straight(ms, 0, step_len, leg_seq=[1, 4, 3, 2], body_to_center=True)
-        compensated_leg_movement(ms, 3, [0, 0, 5])
-        compensated_leg_movement(ms, 3, [0, 0, -5])
+        #compensated_leg_movement(ms, 3, [0, 0, 5])
+        #compensated_leg_movement(ms, 3, [0, 0, -5])
+        ms.body_movement(3, 0, 0)
+        ms.body_movement(-3, 0, 0)
     elif movement == 'backward':
         move_body_straight(ms, 0, -step_len, leg_seq=[2, 3, 4, 1], body_to_center=True)
     elif movement == 'up':
@@ -22,7 +24,7 @@ def calculate_sequence(movement):
     elif movement == 'down':
         deactivation_move = -4
         ms.body_movement(0, 0, deactivation_move)
-    ms.run_animation(delay=50)
+    #ms.run_animation(delay=50)
     print(ms.sequence)
     return ms.sequence
 

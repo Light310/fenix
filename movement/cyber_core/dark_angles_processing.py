@@ -73,7 +73,7 @@ def check_angles(angles, mode):
     angles_converted = str([round(x, 2) for x in [alpha, beta, gamma]])
     if alpha < -40 or alpha > 40:
         return False, angles_converted + ' alpha={0}'.format(alpha)
-    if beta < -110 or beta > -15:
+    if beta < -110 or beta > -25:
         return False,  angles_converted + '. beta={0}'.format(beta)
     if gamma < -110 or gamma > 0: # 15 is cuz of construction of last joint
         return False, angles_converted + '. gamma={0}'.format(gamma)

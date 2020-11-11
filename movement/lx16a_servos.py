@@ -107,7 +107,7 @@ class LX16A:
                           position,rate)
      self.sendPacket(packet)
 
-  def moveServoToAngle(self, id, angle, rate=3000):
+  def moveServoToAngle(self, id, angle, rate=0):
       position = neutral[id] + int(angle/0.24)
       #print('For id {0} angle {1} converted to position {2}'.format(id, angle, position))
       for i in range(10):
@@ -375,6 +375,7 @@ def read_values(m0, servo):
    except:
       print('Could not read values from servo {0}'.format(servo))
 
+"""
 def convert_angles(angles):
     out_angles = []
     for i in range(4):
@@ -387,7 +388,7 @@ def convert_angles(angles):
     print(angles)
     print('converted to')
     print(out_angles)
-
+"""
 
 if __name__ == '__main__':      
     m1 = LX16A(Port='/dev/ttyAMA0') # 5-8   # 1-4

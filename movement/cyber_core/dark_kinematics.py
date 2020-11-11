@@ -11,8 +11,8 @@ from cyber_core.animation import animate
 from cyber_core.dark_angles_processing import get_leg_angles, angles_str, target_alpha, target_beta, target_gamma
 
 mode = 90
-margin = 0
-z_up = 1
+margin = 3
+z_up = 5
 #k = 14
 
 turn_angle = pi / 96
@@ -407,7 +407,7 @@ class MovementSequence:
     def post_movement_actions(self):
         # self.calculate_unsupporting_leg()
         self.save_angles()
-        self.log_movement_history()
+        # self.log_movement_history()
 
     def log_movement_history(self):
         self.mh.add_leg_lines(self.Leg1, self.Leg2, self.Leg3, self.Leg4)
@@ -691,7 +691,7 @@ def compensated_leg_movement(ms, leg_num, leg_delta):
         full_leg_delta[3] = [leg_delta[0], leg_delta[1]]
 
     # moving body to compensate future movement
-    #body_compensation_for_leg_delta(ms, leg_num, full_leg_delta)
+    body_compensation_for_leg_delta(ms, leg_num, full_leg_delta)
 
     max_delta = max(abs(x) for x in leg_delta)
     num_steps = int(max_delta / ms.step)
