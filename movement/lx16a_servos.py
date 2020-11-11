@@ -283,6 +283,9 @@ class LX16A:
      s = struct.unpack("<BBBBBhB",rpacket)
      return s[5]
 
+  def readAngle(self, id):
+      return round((self.readPosition(id) - neutral[id]) * 0.24 , 2)
+
   # Bouge moteur avec vitesse   motorMode=1 MotorSpeed=rate
   # sinon set  servo mode =>   motorMode=0 
   def motorOrServo(self,id,motorMode,MotorSpeed):
@@ -397,27 +400,5 @@ if __name__ == '__main__':
     m4 = LX16A(Port='/dev/ttyAMA1') # 1-4   # 13-16
 
     read_values(m1, 1)
-    """
-    m1.moveServoToAngle(1, 0)
-    m1.moveServoToAngle(2, 42)
-    m1.moveServoToAngle(3, 72)
-    m1.moveServoToAngle(4, -60)
-    
-    m2.moveServoToAngle(5, 0)
-    m2.moveServoToAngle(6, 42)
-    m2.moveServoToAngle(7, 72)
-    m2.moveServoToAngle(8, -60)
-    
-    m3.moveServoToAngle(9, 0)
-    m3.moveServoToAngle(10, 42)
-    m3.moveServoToAngle(11, 72)
-    m3.moveServoToAngle(12, -60)
-    
-    m4.moveServoToAngle(13, 0)
-    m4.moveServoToAngle(14, 42)
-    m4.moveServoToAngle(15, 72)
-    m4.moveServoToAngle(16, -60)
-    
-    """
     # convert_angles([-59.57, -72.19, 41.76, -45.0, -59.57, -72.19, 41.76, 45.0, -59.57, -72.19, 41.76, -45.0, -59.57, -72.19, 41.76, 45.0])
     # -43.9, -102.54, 56.44, -45.0, -43.9, -102.54, 56.44, 45.0, -43.9, -102.54, 56.44, -45.0, -43.9, -102.54, 56.44, 45.0

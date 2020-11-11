@@ -1,9 +1,10 @@
 from cyber_core.dark_kinematics import create_new_ms, move_body_straight, compensated_leg_movement
 
 
-def calculate_sequence(movement):
+# Here we get the command, like "up" or "forward"
+# also the ground_z
+def calculate_sequence(movement, ground_z = -7):
     step_len = 6
-    ground_z = -7
     k = 16
 
     if movement == 'up':

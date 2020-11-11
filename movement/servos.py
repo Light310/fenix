@@ -27,28 +27,58 @@ class Fenix():
         print(out_angles)
         return out_angles
 
-    def set_servo_values(self, angles):
+    def angles_are_close(self, target_angles):
+        """
+        compares self angles to target angles
+        if they are different, return false
+        """
+        current_angles = []
+        j = 1
+        for m in [self.m1, self.m2, self.m3, self.m4]:            
+            for _ in range(4):
+                current_angles.append(m.readAngle(j))
+                j += 1
+        print('Current angles :')
+        print(current_angles)
+
+        target_angles = self.convert_angles(target_angles)
+        for i in range(16):
+            if abs(current_angles[i] - target_angles[i]) > 2:
+                print('Angles {0} diff too big. {1}, {2}'.format(i, current_angles[i], target_angles[i]))
+                return False
+
+        return True
+
+    def set_servo_values(self, angles, rate=0):
         print('Sending values {0}'.format(angles))
         angles = self.convert_angles(angles)
-        self.m1.moveServoToAngle(1, angles[0])
-        self.m1.moveServoToAngle(2, angles[1])
-        self.m1.moveServoToAngle(3, angles[2])
-        self.m1.moveServoToAngle(4, angles[3])
+        j = 1
+        for m in [self.m1, self.m2, self.m3, self.m4]:
+            for _ in range(4):
+                m.moveServoToAngle(j, angles[j-1], rate)
+                j += 1
 
-        self.m2.moveServoToAngle(5, angles[4])
-        self.m2.moveServoToAngle(6, angles[5])
-        self.m2.moveServoToAngle(7, angles[6])
-        self.m2.moveServoToAngle(8, angles[7])
+        """
+        self.m1.moveServoToAngle(1, angles[0], rate)
+        self.m1.moveServoToAngle(2, angles[1], rate)
+        self.m1.moveServoToAngle(3, angles[2], rate)
+        self.m1.moveServoToAngle(4, angles[3], rate)
 
-        self.m3.moveServoToAngle(9, angles[8])
-        self.m3.moveServoToAngle(10, angles[9])
-        self.m3.moveServoToAngle(11, angles[10])
-        self.m3.moveServoToAngle(12, angles[11])
+        self.m2.moveServoToAngle(5, angles[4], rate)
+        self.m2.moveServoToAngle(6, angles[5], rate)
+        self.m2.moveServoToAngle(7, angles[6], rate)
+        self.m2.moveServoToAngle(8, angles[7], rate)
 
-        self.m4.moveServoToAngle(13, angles[12])
-        self.m4.moveServoToAngle(14, angles[13])
-        self.m4.moveServoToAngle(15, angles[14])
-        self.m4.moveServoToAngle(16, angles[15])
+        self.m3.moveServoToAngle(9, angles[8], rate)
+        self.m3.moveServoToAngle(10, angles[9], rate)
+        self.m3.moveServoToAngle(11, angles[10], rate)
+        self.m3.moveServoToAngle(12, angles[11], rate)
+
+        self.m4.moveServoToAngle(13, angles[12], rate)
+        self.m4.moveServoToAngle(14, angles[13], rate)
+        self.m4.moveServoToAngle(15, angles[14], rate)
+        self.m4.moveServoToAngle(16, angles[15], rate)
+        """
 
 if __name__ == '__main__':
     fnx = Fenix()
