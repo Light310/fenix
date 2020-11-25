@@ -116,7 +116,7 @@ class fenix_imus(threading.Thread):
     def get_leg_servo_angles(self):
         # returns 4 arrays of angles, each for the corresponding leg
         angles = self.real_angles
-        leg_1_angles = self.convert_mpus_to_servos([angles[11], angles[10], angles[9], angles[8]])
+        leg_1_angles = self.convert_mpus_to_servos([angles[11]+18, angles[10], angles[9], angles[8]])
         leg_2_angles = self.convert_mpus_to_servos([angles[15], angles[14], angles[13], angles[12]])
         leg_3_angles = self.convert_mpus_to_servos([angles[3], angles[2], angles[1], angles[0]])
         leg_4_angles = self.convert_mpus_to_servos([angles[7], angles[6], angles[5], angles[4]])
@@ -148,8 +148,8 @@ class fenix_imus(threading.Thread):
     def __del__(self):
         self.stop()
 
-
 """
+
 # example usage
 imus = fenix_imus()
 imus.start()
@@ -164,5 +164,4 @@ while True:
     time.sleep(0.01)
 print('End : {0}'.format(datetime.datetime.now()))
 imus.stop()
-
 """

@@ -258,7 +258,27 @@ class MovementHistory:
             tetta = round(tetta, 2)
             #print('tetta after : {0}'.format(tetta))
             position.append(tetta)
-        self.angles_history.append(position)
+        self.angles_history.append(self.convert_angles(position))
+
+    @staticmethod
+    def convert_angles(angles):
+        out_angles = []
+        for i in range(4):
+            for j in range(4):
+                cur_value = angles[4*i + 3 - j]
+                if j == 2:
+                    out_angles.append(cur_value * -1)
+                elif j == 0:
+                    if i in [0, 2]:
+                        out_angles.append(round(cur_value + 45, 2))
+                    else:
+                        out_angles.append(round(cur_value - 45, 2))
+                else:
+                    out_angles.append(cur_value)
+        #print(angles)
+        #print('converted to')
+        #print(out_angles)
+        return out_angles
 
 
 #################################################################
@@ -625,10 +645,10 @@ def ms_to_array(ms):
 
 
 def create_new_ms(ground_z, k, step=0.5):
-    d = 4.9
+    d = 5.3
     a = 8.7
-    b = 6.8
-    c = 8.35
+    b = 6.9
+    c = 13.2
 
     leg_distance = 3.8 
     O1 = Point(leg_distance, leg_distance, 0)
@@ -750,8 +770,9 @@ def reposition_legs(ms, delta_xy):
     ms.body_to_center()
 
 def move_2_legs(ms, delta_y, sync_body=True):
-    full_leg_delta_1 = [0, delta_y, 2]
-    full_leg_delta_2 = [0, 0, -2]
+    z = 4
+    full_leg_delta_1 = [0, delta_y, z]
+    full_leg_delta_2 = [0, 0, -z]
     max_delta_1 = max(abs(x) for x in full_leg_delta_1)
     max_delta_2 = max(abs(x) for x in full_leg_delta_2)
     num_steps_1 = int(max_delta_1 / ms.step)
@@ -795,9 +816,10 @@ def move_2_legs(ms, delta_y, sync_body=True):
         ms.body_to_center()
 
 def move_2_legs_x3(ms, delta_y):
-    full_leg_delta_1 = [0, delta_y, 3]
-    full_leg_delta_2 = [0, 0, -3]
-    full_leg_delta_3 = [0, 2*delta_y, 3]
+    z = 4
+    full_leg_delta_1 = [0, delta_y, z]
+    full_leg_delta_2 = [0, 0, -z]
+    full_leg_delta_3 = [0, 2*delta_y, z]
     max_delta_1 = max(abs(x) for x in full_leg_delta_1)
     max_delta_2 = max(abs(x) for x in full_leg_delta_2)
     max_delta_3 = max(abs(x) for x in full_leg_delta_3)

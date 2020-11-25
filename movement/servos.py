@@ -7,6 +7,7 @@ class Fenix():
         self.m3 = LX16A(Port='/dev/ttyAMA3') # 13-16 # 9-12
         self.m4 = LX16A(Port='/dev/ttyAMA1') # 1-4   # 13-16
     
+    """
     @staticmethod
     def convert_angles(angles):
         out_angles = []
@@ -26,6 +27,10 @@ class Fenix():
         print('converted to')
         print(out_angles)
         return out_angles
+    """
+    @staticmethod
+    def convert_angles(angles):
+        return angles
 
     def angles_are_close(self, target_angles):
         """
@@ -58,29 +63,19 @@ class Fenix():
                 m.moveServoToAngle(j, angles[j-1], rate)
                 j += 1
 
-        """
-        self.m1.moveServoToAngle(1, angles[0], rate)
-        self.m1.moveServoToAngle(2, angles[1], rate)
-        self.m1.moveServoToAngle(3, angles[2], rate)
-        self.m1.moveServoToAngle(4, angles[3], rate)
-
-        self.m2.moveServoToAngle(5, angles[4], rate)
-        self.m2.moveServoToAngle(6, angles[5], rate)
-        self.m2.moveServoToAngle(7, angles[6], rate)
-        self.m2.moveServoToAngle(8, angles[7], rate)
-
-        self.m3.moveServoToAngle(9, angles[8], rate)
-        self.m3.moveServoToAngle(10, angles[9], rate)
-        self.m3.moveServoToAngle(11, angles[10], rate)
-        self.m3.moveServoToAngle(12, angles[11], rate)
-
-        self.m4.moveServoToAngle(13, angles[12], rate)
-        self.m4.moveServoToAngle(14, angles[13], rate)
-        self.m4.moveServoToAngle(15, angles[14], rate)
-        self.m4.moveServoToAngle(16, angles[15], rate)
-        """
-
 if __name__ == '__main__':
     fnx = Fenix()
-    fnx.set_servo_values([-44.26, -74.76, 29.02, -45.0, -44.26, -74.76, 29.02, 45.0, -44.26, -74.76, 29.02, -45.0, -44.26, -74.76, 29.02, 45.0])
-    #[0.0, 23.96, 73.61, -40.36, 0.0, 23.96, 73.61, -40.36, 0.0, 23.96, 73.61, -40.36, 0.0, 23.96, 73.61, -40.36]
+    #angles = [-23.43, -106.62, 40.0, -45.0, -46.26, -71.5, 27.75, 35.14, -86.69, -25.02, 27.49, -45.0, -46.26, -71.5, 27.75, 54.86]
+    #angles = [-23.43, -106.62, 40.0, -45.0, -46.26, -71.5, 24.75, 35.14, -86.69, -25.02, 27.49, -45.0, -46.26, -71.5, 24.75, 54.86]
+    angles = [0.0, 40.0, 106.62, -23.43, -9.86, 27.75, 71.5, -46.26, 0.0, 27.49, 25.02, -86.69, 9.86, 27.75, 71.5, -46.26]
+    fnx.set_servo_values(angles, rate=5000)
+    import time
+    for i in range(10):
+        fnx.angles_are_close(angles)
+        time.sleep(0.5)
+
+    # [0.48, 39.6, 107.52, -24.96, -9.12, 31.92, 69.84, -46.8, -0.72, 27.36, 25.68, -87.36, 8.4, 30.72, 70.56, -47.52]
+    # 31.92 and 30.72 must go to 27.75
+    # 30.96, 29.28
+    # 28.8, 26.16
+    # 6, 14

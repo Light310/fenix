@@ -126,26 +126,29 @@ strip = PixelStrip(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRI
 strip.begin()
 
 ln = 18
-
-while True:
-    for i in range(ln):
-        # strip.setPixelColor(i, Color(204, 102, 0)) # yellow
-        # strip.setPixelColor(i, Color(255, 255, 255)) # white
-        # strip.setPixelColor(i, Color(0, 255, 255)) # cyan
-        # strip.setPixelColor(i, Color(0, 0, 255)) # blue
-        strip.setPixelColor(i, Color(255, 227, 200)) # white-yellow
-        # strip.setPixelColor(i, Color(218, 112, 214)) # purple
-    for j in range(255):
+try:
+    while True:
         for i in range(ln):
-            #strip.setPixelColor(i, Color(j, j, j))
-            strip.setBrightness(j)
-            strip.show()
-        time.sleep(0.01)
-    time.sleep(3)
-    for j in range(255):
-        for i in range(ln):
-            #strip.setPixelColor(i, Color(255-j, 255-j, 255-j))
-            strip.setBrightness(255-j)
-            strip.show()
-        time.sleep(0.01)
-    time.sleep(3)
+            # strip.setPixelColor(i, Color(204, 102, 0)) # yellow
+            # strip.setPixelColor(i, Color(255, 255, 255)) # white
+            # strip.setPixelColor(i, Color(0, 255, 255)) # cyan
+            # strip.setPixelColor(i, Color(0, 0, 255)) # blue
+            strip.setPixelColor(i, Color(255, 227, 200)) # white-yellow
+            # strip.setPixelColor(i, Color(218, 112, 214)) # purple
+        for j in range(255):
+            for i in range(ln):
+                #strip.setPixelColor(i, Color(j, j, j))
+                strip.setBrightness(j)
+                strip.show()
+            time.sleep(0.01)
+        time.sleep(3)
+        for j in range(255):
+            for i in range(ln):
+                #strip.setPixelColor(i, Color(255-j, 255-j, 255-j))
+                strip.setBrightness(255-j)
+                strip.show()
+            time.sleep(0.01)
+        time.sleep(3)
+except KeyboardInterrupt:
+    strip.setBrightness(0)
+    strip.show()

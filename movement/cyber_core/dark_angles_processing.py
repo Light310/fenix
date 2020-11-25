@@ -71,7 +71,7 @@ def check_angles(angles, mode):
     beta = math.degrees(angles[1])
     gamma = math.degrees(angles[2])
     angles_converted = str([round(x, 2) for x in [alpha, beta, gamma]])
-    if alpha < -40 or alpha > 40:
+    if alpha < -35 or alpha > 35:
         return False, angles_converted + ' alpha={0}'.format(alpha)
     if beta < -110 or beta > -25:
         return False,  angles_converted + '. beta={0}'.format(beta)

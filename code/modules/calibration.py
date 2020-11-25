@@ -444,6 +444,7 @@ calibration_o16 = {
 }
 
 # (o07, o01, o02, o03, o10, o06, o05, o04, o11, o08, o09, o12, o16, o15, o13, o14)
+"""
 calibration_dicts = {0 : calibration_o07, 
                      1 : calibration_o01,
                      2 : calibration_o02,
@@ -459,6 +460,23 @@ calibration_dicts = {0 : calibration_o07,
                     12 : calibration_o16,
                     13 : calibration_o15,
                     14 : calibration_o13,
+                    15 : calibration_o14}
+"""
+calibration_dicts = {0 : calibration_0, 
+                     1 : calibration_0,
+                     2 : calibration_0,
+                     3 : calibration_o03,
+                     4 : calibration_0,
+                     5 : calibration_0,
+                     6 : calibration_0,
+                     7 : calibration_o04,
+                     8 : calibration_0,
+                     9 : calibration_0,
+                    10 : calibration_0,
+                    11 : calibration_o12,
+                    12 : calibration_0,
+                    13 : calibration_0,
+                    14 : calibration_0,
                     15 : calibration_o14}
 
 def get_interval(calibration_dict, target_value):

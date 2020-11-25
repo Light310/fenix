@@ -351,10 +351,12 @@ class mpu6050:
         return angles
 
     def activate(self):
-        self.mcp.set_pin(self.activation_pin, 0)
+        if self.mcp:
+            self.mcp.set_pin(self.activation_pin, 0)
 
     def deactivate(self):
-        self.mcp.set_pin(self.activation_pin, 1)
+        if self.mcp:
+            self.mcp.set_pin(self.activation_pin, 1)
 
     def apply_kalman_filter(self):
 

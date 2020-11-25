@@ -1,18 +1,18 @@
 #!/usr/bin/python3
-from time import sleep
+import time
 from serial import Serial
 import struct
 
 
 neutral = {
    1 : 470,
-   2 : 483,
+   2 : 479,
    3 : 465,
-   4 : 480,
-   5 : 475,
+   4 : 485,
+   5 : 480,
    6 : 490,
    7 : 480,
-   8 : 500,
+   8 : 493,
    9 : 500,
    10 : 506,
    11 : 507,
@@ -73,7 +73,7 @@ class LX16A:
   def __init__(self,Port="/dev/ttyUSB0",Baudrate=115200, Timeout= 0.001):
      self.serial = Serial(Port,baudrate=Baudrate,timeout=Timeout)
      self.serial.setDTR(1)
-     self.TX_DELAY_TIME = 0.00002 
+     self.TX_DELAY_TIME = 0.00002
      self.Header = struct.pack("<BB",0x55,0x55)
 
 
@@ -85,20 +85,19 @@ class LX16A:
      fullPacket = bytearray(self.Header + packet + struct.pack("<B",(~sum) & 0xff))
      self.serial.write(fullPacket)
 
-     sleep(self.TX_DELAY_TIME)
+     time.sleep(self.TX_DELAY_TIME)
 
   #besoin d'ajouter exception et réessaie au cas si le checksum n'est pas bon
   # aussi verifier bon ID et commande dans retour
   def sendReceivePacket(self,packet,receiveSize):
-      t_id = packet[0]     
-      t_command = packet[2]
-      self.serial.flushInput()
-      self.serial.timeout=0.1
-      self.sendPacket(packet)
-      r_packet = self.serial.read(receiveSize+3)
-      # print(r_packet)
-      return r_packet
-        
+     t_id = packet[0]     
+     t_command = packet[2]
+     self.serial.flushInput()
+     self.serial.timeout=0.1
+     self.sendPacket(packet)
+     r_packet = self.serial.read(receiveSize+3)
+#     print(r_packet)
+     return r_packet 
 
   # Bouger le servo entre 0 et 1000 soit 0.24 degree resolution
   # rate est en ms  de 0(fast) a 30000(slow)
@@ -108,28 +107,13 @@ class LX16A:
                           position,rate)
      self.sendPacket(packet)
 
-  def moveServoToAngle(self, id, angle, rate=0):
-      position = neutral[id] + int(angle/0.24)
-      #print('For id {0} angle {1} converted to position {2}'.format(id, angle, position))
-      for i in range(10):
-         try:
-            packet = struct.pack("<BBBHH",id,7,
-                                 self.SERVO_MOVE_TIME_WRITE,
-                                 position,rate)
-            self.sendPacket(packet)
-            #try:
-            target = self.readServoTarget(id)[0]
-            #print('Target required : {0}. Target real : {1}'.format(position, target))
-            if target != position:
-               print('Target required : {0}. Target real : {1}'.format(position, target))
-               print('============ALARM=============')
-               continue
-            #print('{0} attempt succeded'.format(i))
-            break
-         except:
-            print('{0} attempt failed for servo {1}'.format(i, id))
-      #except:
-      #   print('Error reading servo target')
+  def moveServoToAngle(self, id, angle, rate=3000):
+     position = neutral[id] + int(angle/0.24)
+     print('For id {0} angle {1} converted to position {2}'.format(id, angle, position))
+     packet = struct.pack("<BBBHH",id,7,
+                          self.SERVO_MOVE_TIME_WRITE,
+                          position,rate)
+     self.sendPacket(packet)
 
   # Lire l'angle et le rate envoyer par moveServo
   # angle est entre 0 et 1000 siot 0.24 degree de resolution
@@ -277,17 +261,12 @@ class LX16A:
 
   #lire la position du servo
   #la valeur peut etre negative alors c'est  signed short
-  def readPosition(self,id):     
-       try:
-         packet = struct.pack("<BBB",id,3,self.SERVO_POS_READ)
-         rpacket = self.sendReceivePacket(packet,5)
-         s = struct.unpack("<BBBBBhB",rpacket)
-         return s[5]
-       except:
-         raise Exception('Can not read values from servo {0}'.format(id))
-
-  def readAngle(self, id):
-      return round((self.readPosition(id) - neutral[id]) * 0.24 , 2)
+  def readPosition(self,id):
+     packet = struct.pack("<BBB",id,3,self.SERVO_POS_READ)
+     rpacket = self.sendReceivePacket(packet,5)
+     #print(rpacket)
+     s = struct.unpack("<BBBBBhB",rpacket)
+     return s[5]
 
   # Bouge moteur avec vitesse   motorMode=1 MotorSpeed=rate
   # sinon set  servo mode =>   motorMode=0 
@@ -372,42 +351,26 @@ def convert_position_to_angle(start, value):
    return round((value - start) * 0.24 , 2)
 
 def read_values(m0, servo):
-   try:
-      pos = m0.readPosition(servo)
-      temp = m0.readTemperature(servo)
-      volt = m0.readVoltage(servo)
-      target = m0.readServoTarget(servo)
-      print('{5:2d}. Pos: {0:5d}. Target: {1:5d}, {2:5d}. Temp: {3:5d}. Volt: {4:5d}'
-              .format(pos, target[0], target[1], temp, volt, servo))
-   except:
-      print('Could not read values from servo {0}'.format(servo))
+   pos = m0.readPosition(servo)
+   temp = m0.readTemperature(servo)
+   volt = m0.readVoltage(servo)
+   target = m0.readServoTarget(servo)
+   print('Pos: {0:5d}. Target: {1:5d}, {2:5d}. Temp: {3:5d}. Volt: {4:5d}'.format(pos, target[0], target[1], temp, volt))
 
-"""
-def convert_angles(angles):
-    out_angles = []
-    for i in range(4):
-        for j in range(4):
-            cur_value = angles[4*i + 3 - j]
-            if j == 2:
-                out_angles.append(cur_value * -1)
-            else:
-                out_angles.append(cur_value)
-    print(angles)
-    print('converted to')
-    print(out_angles)
-"""
 
-if __name__ == '__main__':      
-    m1 = LX16A(Port='/dev/ttyAMA0') # 5-8   # 1-4
-    m2 = LX16A(Port='/dev/ttyAMA2') # 9-12  # 5-8
-    m3 = LX16A(Port='/dev/ttyAMA3') # 13-16 # 9-12
-    m4 = LX16A(Port='/dev/ttyAMA1') # 1-4   # 13-16
-
-    for m in range(1):
-      j = 1
-      for m in [m1, m2, m3, m4]:
-         for _ in range(4):
-            read_values(m, j)
-            j += 1
-    # convert_angles([-59.57, -72.19, 41.76, -45.0, -59.57, -72.19, 41.76, 45.0, -59.57, -72.19, 41.76, -45.0, -59.57, -72.19, 41.76, 45.0])
-    # -43.9, -102.54, 56.44, -45.0, -43.9, -102.54, 56.44, 45.0, -43.9, -102.54, 56.44, -45.0, -43.9, -102.54, 56.44, 45.0
+if __name__ == '__main__':   
+    #m1 = LX16A(Port='/dev/ttyUSB0')
+    m1 = LX16A(Port='/dev/ttyAMA3')
+    
+    new_id = 8
+    # read_values(m1, new_id)
+    """
+    read_values(m1, 1)
+    m1.setID(1, new_id)
+    read_values(m1, new_id)
+    """
+    m1.moveServoToAngle(new_id, 30)
+    time.sleep(1)
+    m1.moveServoToAngle(new_id, 0)
+    time.sleep(1)
+    

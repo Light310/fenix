@@ -1,22 +1,26 @@
-from cyber_core.dark_kinematics import create_new_ms, move_body_straight, compensated_leg_movement
+from cyber_core.dark_kinematics import create_new_ms, move_body_straight, move_2_legs, move_2_legs_x3
 
 
 # Here we get the command, like "up" or "forward"
 # also the ground_z
-def calculate_sequence(movement, ground_z = -7):
+def calculate_sequence(movement, ground_z = -14):    
+
     step_len = 6
     k = 16
 
     if movement == 'up':
-        ground_z = -5
+        ground_z = -9
     ms = create_new_ms(ground_z, k, step=0.2)
+
 
     if movement == 'forward':
         #move_body_straight(ms, 0, step_len, leg_seq=[1, 4, 3, 2], body_to_center=True)
         #compensated_leg_movement(ms, 3, [0, 0, 5])
         #compensated_leg_movement(ms, 3, [0, 0, -5])
-        ms.body_movement(3, 0, 0)
-        ms.body_movement(-3, 0, 0)
+        #ms.body_movement(3, 0, 0)
+        #ms.body_movement(-3, 0, 0)
+        move_2_legs(ms, 6, sync_body=True)
+        #move_2_legs_x3(ms, 6)
     elif movement == 'backward':
         move_body_straight(ms, 0, -step_len, leg_seq=[2, 3, 4, 1], body_to_center=True)
     elif movement == 'up':
