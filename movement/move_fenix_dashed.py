@@ -6,15 +6,15 @@ from cyber_core.create_sequence import calculate_sequence
 #from servos import Fenix
 from adj_servos import Fenix
 
-
-fnx = Fenix()
-
+calculate_sequence('forward')
+#fnx = Fenix()
+"""
 start = True
 while True:
-    command = get_command()
-
+    #command = get_command()
+    
     if command == 'exit':
-        fnx.stop()
+        #fnx.stop()
         break
 
     #sequence = get_values_for_servos(command)
@@ -35,7 +35,8 @@ while True:
 
         for item in sequence:
             #fnx.set_servo_values(item)
-            fnx.set_servo_values_adj(item)
+            #fnx.set_servo_values_adj(item)
             time.sleep(0.05)
 
     time.sleep(10)
+"""

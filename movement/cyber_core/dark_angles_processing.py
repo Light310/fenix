@@ -73,7 +73,7 @@ def check_angles(angles, mode):
     angles_converted = str([round(x, 2) for x in [alpha, beta, gamma]])
     if alpha < -35 or alpha > 35:
         return False, angles_converted + ' alpha={0}'.format(alpha)
-    if beta < -110 or beta > -25:
+    if beta < -110 or beta > -45:
         return False,  angles_converted + '. beta={0}'.format(beta)
     if gamma < -110 or gamma > 0: # 15 is cuz of construction of last joint
         return False, angles_converted + '. gamma={0}'.format(gamma)
@@ -100,13 +100,13 @@ def find_angles(Dx, Dy, lengths, prev_ksi=None):
         #sys.exit(1)
 
     #for k in np.arange(-35.0, 35.0, 0.1):
-    from_angle = -90.0
-    to_angle = 90.0
-    angle_step = 1.0
+    from_angle = -45.0
+    to_angle = 45.0
+    angle_step = 1.5
     if prev_ksi:
         from_angle = max(from_angle, prev_ksi - 3.0)
         to_angle = min(to_angle, prev_ksi + 3.0)
-        angle_step = 0.01
+        angle_step = 0.1 # 0.01
         #print(f'Trying angles : {from_angle}, {to_angle}')
 
     for k in np.arange(from_angle, to_angle, angle_step):

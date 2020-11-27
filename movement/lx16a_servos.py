@@ -90,14 +90,19 @@ class LX16A:
   #besoin d'ajouter exception et réessaie au cas si le checksum n'est pas bon
   # aussi verifier bon ID et commande dans retour
   def sendReceivePacket(self,packet,receiveSize):
-      t_id = packet[0]     
-      t_command = packet[2]
-      self.serial.flushInput()
-      self.serial.timeout=0.1
-      self.sendPacket(packet)
-      r_packet = self.serial.read(receiveSize+3)
-      # print(r_packet)
-      return r_packet
+      num_attempts = 3
+      for i in range(num_attempts):
+         t_id = packet[0]     
+         t_command = packet[2]
+         self.serial.flushInput()
+         self.serial.timeout=0.1
+         self.sendPacket(packet)
+         r_packet = self.serial.read(receiveSize+3)
+         #print('r_packet : {0}. Length : {1}'.format(r_packet, len(r_packet)))
+         if len(r_packet) > 0: 
+            return r_packet
+         print('Attempt {0} failed.'.format(i))
+      raise Exception('Got empty response in {0} attempts'.format(num_attempts))
         
 
   # Bouger le servo entre 0 et 1000 soit 0.24 degree resolution
@@ -382,32 +387,35 @@ def read_values(m0, servo):
    except:
       print('Could not read values from servo {0}'.format(servo))
 
-"""
-def convert_angles(angles):
-    out_angles = []
-    for i in range(4):
-        for j in range(4):
-            cur_value = angles[4*i + 3 - j]
-            if j == 2:
-                out_angles.append(cur_value * -1)
-            else:
-                out_angles.append(cur_value)
-    print(angles)
-    print('converted to')
-    print(out_angles)
-"""
 
 if __name__ == '__main__':      
-    m1 = LX16A(Port='/dev/ttyAMA0') # 5-8   # 1-4
-    m2 = LX16A(Port='/dev/ttyAMA2') # 9-12  # 5-8
-    m3 = LX16A(Port='/dev/ttyAMA3') # 13-16 # 9-12
-    m4 = LX16A(Port='/dev/ttyAMA1') # 1-4   # 13-16
-
-    for m in range(1):
+   m1 = LX16A(Port='/dev/ttyAMA0') # 5-8   # 1-4
+   m2 = LX16A(Port='/dev/ttyAMA2') # 9-12  # 5-8
+   m3 = LX16A(Port='/dev/ttyAMA3') # 13-16 # 9-12
+   m4 = LX16A(Port='/dev/ttyAMA1') # 1-4   # 13-16
+   #m2.moveServoToAngle(7, 45)
+   
+   
+   for m in range(1):
       j = 1
       for m in [m1, m2, m3, m4]:
          for _ in range(4):
             read_values(m, j)
             j += 1
-    # convert_angles([-59.57, -72.19, 41.76, -45.0, -59.57, -72.19, 41.76, 45.0, -59.57, -72.19, 41.76, -45.0, -59.57, -72.19, 41.76, 45.0])
-    # -43.9, -102.54, 56.44, -45.0, -43.9, -102.54, 56.44, 45.0, -43.9, -102.54, 56.44, -45.0, -43.9, -102.54, 56.44, 45.0
+   """
+
+   import datetime
+   m1.moveServoToAngle(4, 0, 1000)
+   sleep(2.0)
+   m1.moveServoToAngle(4, -15, 1000)
+   for i in range(20):
+      print(datetime.datetime.now())
+      read_values(m1, 4)
+      sleep(0.1)
+   
+   # 90 degrees 16:01:33.297644 -> 16:01:34.496840 = 1.2 sec
+   # 45 degrees 16:02:37.979423 -> 16:02:39.177309 = 1.2 sec
+   # 15 degrees 16:03:28.401272 -> 16:03:29.600157 = 1.2 sec
+   m1.moveServoToAngle(4, 0, 1000)
+   sleep(2.0)
+   """
