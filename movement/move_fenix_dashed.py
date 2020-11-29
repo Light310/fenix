@@ -3,8 +3,8 @@ import time
 from commands import get_command
 #from sequences import get_values_for_servos
 from cyber_core.create_sequence import calculate_sequence
-#from servos import Fenix
-from adj_servos import Fenix
+from servos import Fenix
+#from adj_servos import Fenix
 
 calculate_sequence('forward')
 #fnx = Fenix()

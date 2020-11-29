@@ -8,11 +8,11 @@ import os
 import copy
 
 from cyber_core.animation import animate
-from cyber_core.dark_angles_processing import get_leg_angles, angles_str, target_alpha, target_beta, target_gamma
+from cyber_core.dark_angles_processing_dashed import get_leg_angles, angles_str, target_alpha, target_beta, target_gamma
 
 mode = 90
-margin = 3
-z_up = 3
+margin = 4
+z_up = 5
 #k = 14
 
 turn_angle = pi / 96
@@ -20,15 +20,43 @@ turn_angle = pi / 96
 phi_angle = 0
 phi = math.radians(phi_angle)
 
-angles_prev = [target_alpha, target_beta, target_gamma]
+#angles_prev = [target_alpha, target_beta, target_gamma]
 
 
-body_weight = 500
-leg_CD_weight = 100
-leg_BC_weight = 50
-leg_AB_weight = 150
-leg_OA_weight = 50
+def create_new_ms(ground_z, k):
+    d = 5.3
+    a = 8.7
+    b = 6.9
+    c = 13.2
 
+    leg_distance = 3.8 
+    O1 = Point(leg_distance, leg_distance, 0)
+    D1 = Point(k, k, ground_z)
+    Leg1 = Leg(1, "Leg1", O1, D1, 
+               math.radians(target_alpha), math.radians(target_beta), math.radians(target_gamma),
+               a, b, c, d)
+
+    O2 = Point(leg_distance, -leg_distance, 0)
+    D2 = Point(k, -k, ground_z)
+    Leg2 = Leg(2, "Leg2", O2, D2, 
+               math.radians(target_alpha), math.radians(target_beta), math.radians(target_gamma),
+               a, b, c, d)
+
+    O4 = Point(-leg_distance, leg_distance, 0)
+    D4 = Point(-k, k, ground_z)
+    Leg4 = Leg(4, "Leg4", O4, D4, 
+               math.radians(target_alpha), math.radians(target_beta), math.radians(target_gamma),
+               a, b, c, d)
+
+
+    O3 = Point(-leg_distance, -leg_distance, 0)
+    D3 = Point(-k, -k, ground_z)
+    Leg3 = Leg(3, "Leg3", O3, D3, 
+               math.radians(target_alpha), math.radians(target_beta), math.radians(target_gamma),
+               a, b, c, d)
+   
+
+    return MovementSequence(Leg1, Leg2, Leg3, Leg4, ground_z)
 
 def get_angle_by_coords(x1, y1):
     l = math.sqrt(x1 ** 2 + y1 ** 2)
@@ -160,73 +188,7 @@ def target_body_position(target_leg_positions, unsupporting_leg_number):
 
 class MovementHistory:
     def __init__(self):
-        self.body_lines_history = [[], [], [], []]
-        self.line_mass_weight_history = [[]]
-        self.basement_lines_history = [[], [], [], [], [], [], [], []]
-        self.leg_lines_history = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []]
-        self.unsupporting_leg_lines_history = [[]]
-        self._lines_history = []
         self.angles_history = []
-
-    # o1 - o4 = leg1.O - leg4.O
-    def add_body_lines(self, o1, o2, o3, o4):
-        self.body_lines_history[0].append(Line(o1, o2).convert_to_arr())
-        self.body_lines_history[1].append(Line(o2, o3).convert_to_arr())
-        self.body_lines_history[2].append(Line(o3, o4).convert_to_arr())
-        self.body_lines_history[3].append(Line(o4, o1).convert_to_arr())
-
-    def add_mw_lines(self, wm1, wm2):
-        self.line_mass_weight_history[0].append(Line(wm1, wm2).convert_to_arr())
-
-    def add_unsup_leg_line(self, d):
-        unsupporting_point_1 = d
-        unsupporting_point_2 = Point(d.x, d.y, d.z + 10)
-        self.unsupporting_leg_lines_history[0].append(Line(unsupporting_point_1, unsupporting_point_2).convert_to_arr())
-
-    # d1 - d4 = leg1.D - leg4.D
-    def add_basement_lines(self, d1, d2, d3, d4, ground_z):
-        LF_13 = LinearFunc(point1=d1, point2=d3)
-        LF_24 = LinearFunc(point1=d2, point2=d4)
-        intersection = calculate_intersection(LF_13, LF_24)
-        legs_center = Point(intersection[0], intersection[1], ground_z)
-
-        LM_12 = Point(d1.x, d1.y, ground_z)
-        LM_23 = Point(d2.x, d2.y, ground_z)
-        LM_34 = Point(d3.x, d3.y, ground_z)
-        LM_14 = Point(d4.x, d4.y, ground_z)
-
-        leg1_D_projection = Point(d1.x, d1.y, ground_z)
-        leg2_D_projection = Point(d2.x, d2.y, ground_z)
-        leg3_D_projection = Point(d3.x, d3.y, ground_z)
-        leg4_D_projection = Point(d4.x, d4.y, ground_z)
-
-        self.basement_lines_history[0].append(Line(leg1_D_projection, leg2_D_projection).convert_to_arr())
-        self.basement_lines_history[1].append(Line(leg2_D_projection, leg3_D_projection).convert_to_arr())
-        self.basement_lines_history[2].append(Line(leg3_D_projection, leg4_D_projection).convert_to_arr())
-        self.basement_lines_history[3].append(Line(leg1_D_projection, leg4_D_projection).convert_to_arr())
-
-        self.basement_lines_history[4].append(Line(LM_12, legs_center).convert_to_arr())
-        self.basement_lines_history[5].append(Line(LM_23, legs_center).convert_to_arr())
-        self.basement_lines_history[6].append(Line(LM_34, legs_center).convert_to_arr())
-        self.basement_lines_history[7].append(Line(LM_14, legs_center).convert_to_arr())
-
-    def add_leg_lines(self, leg1, leg2, leg3, leg4):
-        i = 0
-        for leg in [leg1, leg2, leg3, leg4]:
-            self.leg_lines_history[4 * i].append(Line(leg.O, leg.A).convert_to_arr())
-            self.leg_lines_history[4 * i + 1].append(Line(leg.A, leg.B).convert_to_arr())
-            self.leg_lines_history[4 * i + 2].append(Line(leg.B, leg.C).convert_to_arr())
-            self.leg_lines_history[4 * i + 3].append(Line(leg.C, leg.D).convert_to_arr())
-            i += 1
-
-    @property
-    def lines_history(self):
-        self._lines_history.extend(self.body_lines_history[:])
-        self._lines_history.extend(self.leg_lines_history)
-        self._lines_history.extend(self.line_mass_weight_history)
-        self._lines_history.extend(self.basement_lines_history)
-        self._lines_history.extend(self.unsupporting_leg_lines_history)
-        return self._lines_history
 
     def add_angles_snapshot(self, leg1, leg2, leg3, leg4):
         # angles are : gamma1, beta1, alpha1, tetta1, gamma2, beta2, alpha2, tetta2 ...
@@ -237,12 +199,8 @@ class MovementHistory:
         for leg in [leg1, leg2, leg3, leg4]:
             position.append(round(math.degrees(leg.gamma), 2))
             position.append(round(math.degrees(leg.beta), 2))
-            #if leg == leg3:
             position.append(round(math.degrees(leg.alpha), 2))
-            #else:
-            #    position.append(-1 * round(math.degrees(leg.alpha), 2))
             tetta = math.degrees(leg.tetta)
-            #print('tetta before : {0}'.format(tetta))
             if leg == leg1:
                 #tetta -= 45
                 tetta -= 90
@@ -275,9 +233,7 @@ class MovementHistory:
                         out_angles.append(round(cur_value - 45, 2))
                 else:
                     out_angles.append(cur_value)
-        #print(angles)
-        #print('converted to')
-        #print(out_angles)
+        
         return out_angles
 
 
@@ -355,14 +311,13 @@ class Leg:
 
         tetta = math.atan2(D.y - O.y, D.x - O.x)
         A = Point(O.x + self.len_d * cos(tetta), O.y + self.len_d * sin(tetta), O.z)
-        l = math.sqrt((D.x - A.x) ** 2 + (D.y - A.y) ** 2)
-        delta_z = D.z - O.z
+        l = round(math.sqrt((D.x - A.x) ** 2 + (D.y - A.y) ** 2), 2)
+        delta_z = round(D.z - O.z, 2)
 
         global mode
         #alpha, beta, gamma = get_leg_angles(l, delta_z, [self.alpha, self.beta, self.gamma], mode=mode)
         alpha, beta, gamma = get_leg_angles(l, 
                                             delta_z, 
-                                            [self.alpha, self.beta, self.gamma], 
                                             mode, 
                                             [self.len_a, self.len_b, self.len_c, self.len_d])
 
@@ -425,24 +380,8 @@ class MovementSequence:
 
     def post_movement_actions(self):
         # self.calculate_unsupporting_leg()
+        print('Saving angles')
         self.save_angles()
-        # self.log_movement_history()
-
-    def log_movement_history(self):
-        self.mh.add_leg_lines(self.Leg1, self.Leg2, self.Leg3, self.Leg4)
-        self.mh.add_body_lines(self.Leg1.O, self.Leg2.O, self.Leg3.O, self.Leg4.O)
-        self.mass_center = self.calculate_mass_center()
-        wm1 = Point(self.mass_center[0], self.mass_center[1], self.Leg1.O.z)
-        wm2 = Point(self.mass_center[0], self.mass_center[1], self.ground_z)
-        self.mh.add_mw_lines(wm1, wm2)
-        self.mh.add_basement_lines(self.Leg1.D, self.Leg2.D, self.Leg3.D, self.Leg4.D, self.ground_z)
-        try:
-            self.mh.add_unsup_leg_line(self.unsupporting_leg.D)
-        except:
-            self.mh.add_unsup_leg_line(self.Leg1.D)
-
-        # LM - legs middle point, LM_12 - middle of legs 1 and 2
-        # ALL projected to self.ground_z
    
     def body_movement(self, delta_x, delta_y, delta_z, leg_up=None, leg_up_delta=[0, 0, 0]):
         if delta_x == delta_y == delta_z == 0:
@@ -490,23 +429,20 @@ class MovementSequence:
         avg_d_y /= 4
 
         self.body_movement(avg_d_x - avg_o_x + delta_x, avg_d_y - avg_o_y + delta_y, 0)
-############################################################# REFACTORED TILL HERE
+
     def turn_body(self, angle):
-        num_steps = int(abs(angle / turn_angle))
-        step_angle = round(angle / num_steps, 4)
+        #num_steps = int(abs(angle / turn_angle))
+        #step_angle = round(angle / num_steps, 4)
 
-        for m in range(num_steps):
-            for leg in self.Legs:
-                x_new, y_new = turn_on_angle(leg.O.x, leg.O.y, step_angle)
-                delta_x = x_new - leg.O.x
-                delta_y = y_new - leg.O.y
-                leg.move_mount_point(delta_x, delta_y, 0)
-            self.post_movement_actions()
+        #for m in range(num_steps):
+        for leg in self.Legs:
+            x_new, y_new = turn_on_angle(leg.O.x, leg.O.y, angle)
+            delta_x = x_new - leg.O.x
+            delta_y = y_new - leg.O.y
+            leg.move_mount_point(delta_x, delta_y, 0)
+        self.post_movement_actions()
 
-    @property
-    def lines_history(self):
-        return self.mh.lines_history
-
+    """
     # LM - legs middle point, LM12 - middle point between legs 1 and 2, and so on
     def calculate_basement_points(self):
         LF_13 = LinearFunc(point1=self.Leg1.D, point2=self.Leg3.D)
@@ -536,7 +472,7 @@ class MovementSequence:
             weight_sum += item[2]
 
         return [round(mass_center_x / weight_sum, 2), round(mass_center_y / weight_sum, 2)]
-
+    """
     def leg_movement(self, leg_num, leg_delta):
         if leg_num == 1:
             leg = self.Leg1
@@ -546,48 +482,23 @@ class MovementSequence:
             leg = self.Leg3
         elif leg_num == 4:
             leg = self.Leg4
-
-        max_delta = max(abs(x) for x in leg_delta)
-        num_steps = int(max_delta / self.step)
-        leg_delta = [round(x / num_steps, 4) for x in leg_delta]
-        for m in range(num_steps):
-            for my_leg in [self.Leg1, self.Leg2, self.Leg3, self.Leg4]:
-                if my_leg == leg:
-                    #self._leg_move(my_leg, leg_delta)
-                    my_leg.move_end_point(leg_delta[0], leg_delta[1], leg_delta[2])
-                #else:
-                    #self._leg_move(my_leg, None)
-                #    my_leg.move_end_point(0, 0, 0)
-            self.post_movement_actions()
+       
+        for my_leg in [self.Leg1, self.Leg2, self.Leg3, self.Leg4]:
+            if my_leg == leg:
+                my_leg.move_end_point(leg_delta[0], leg_delta[1], leg_delta[2])
+        self.post_movement_actions()
 
     @staticmethod
     def _leg_move(Leg, delta=None):
         if delta is None:
             Leg.move_end_point(0, 0, 0)
         else:
-            Leg.move_end_point(delta[0], delta[1], delta[2])
-    
-    def print_to_sequence_file(self, sequence_file):
-        for item in self.mh.angles_history:
-            for index, value in enumerate(item):                
-                if index in [7, 15]:
-                    if value > 90 or value < 0:
-                        raise Exception(f'Bad value : ({index}){value} in {item}')
-                if index in [3, 11]:
-                    if value > 0 or value < -90:
-                        raise Exception(f'Bad value : ({index}){value} in {item}')
-                else:
-                    if abs(value) > 135:
-                        raise Exception(f'Bad value : ({index}){value} in {item}')
-        with open(sequence_file, 'w') as f:
-            f.write('\n'.join(str(x) for x in self.mh.angles_history))
+            #Leg.move_end_point(delta[0], delta[1], delta[2])
+            Leg.move_end_point(*delta)
     
     @property
     def sequence(self):
         return self.mh.angles_history
-
-    def run_animation(self, delay=100):
-        animate(self.lines_history, delay)
 
     def sleep(self, iterations):
         for _ in range(iterations):
@@ -608,42 +519,6 @@ def ms_to_array(ms):
                          round(leg.gamma, 5),
                          round(leg.tetta, 5)])
     return ms_array
-
-
-def create_new_ms(ground_z, k):
-    d = 5.3
-    a = 8.7
-    b = 6.9
-    c = 13.2
-
-    leg_distance = 3.8 
-    O1 = Point(leg_distance, leg_distance, 0)
-    D1 = Point(k, k, ground_z)
-    Leg1 = Leg(1, "Leg1", O1, D1, 
-               math.radians(target_alpha), math.radians(target_beta), math.radians(target_gamma),
-               a, b, c, d)
-
-    O2 = Point(leg_distance, -leg_distance, 0)
-    D2 = Point(k, -k, ground_z)
-    Leg2 = Leg(2, "Leg2", O2, D2, 
-               math.radians(target_alpha), math.radians(target_beta), math.radians(target_gamma),
-               a, b, c, d)
-
-    O4 = Point(-leg_distance, leg_distance, 0)
-    D4 = Point(-k, k, ground_z)
-    Leg4 = Leg(4, "Leg4", O4, D4, 
-               math.radians(target_alpha), math.radians(target_beta), math.radians(target_gamma),
-               a, b, c, d)
-
-
-    O3 = Point(-leg_distance, -leg_distance, 0)
-    D3 = Point(-k, -k, ground_z)
-    Leg3 = Leg(3, "Leg3", O3, D3, 
-               math.radians(target_alpha), math.radians(target_beta), math.radians(target_gamma),
-               a, b, c, d)
-   
-
-    return MovementSequence(Leg1, Leg2, Leg3, Leg4, ground_z)
 
 
 def body_compensation_for_leg_delta(ms, leg_num, leg_delta):
@@ -679,23 +554,26 @@ def compensated_leg_movement(ms, leg_num, leg_delta):
     # moving body to compensate future movement
     body_compensation_for_leg_delta(ms, leg_num, full_leg_delta)
 
-    max_delta = max(abs(x) for x in leg_delta)
-    num_steps = int(max_delta / ms.step)
-    leg_delta = [round(x / num_steps, 4) for x in leg_delta]
-    for m in range(num_steps):
-        leg.move_end_point(leg_delta[0], leg_delta[1], leg_delta[2])
-        ms.post_movement_actions()
+    #max_delta = max(abs(x) for x in leg_delta)
+    #num_steps = int(max_delta / ms.step)
+    #leg_delta = [round(x / num_steps, 4) for x in leg_delta]
+    #for m in range(num_steps):
+    #leg.move_end_point(leg_delta[0], leg_delta[1], leg_delta[2])
+    leg.move_end_point(*leg_delta)
+    ms.post_movement_actions()
 
 
 def move_legs_z(ms, legs_delta_z, leg_seq):
+    """
     max_delta = max(abs(x) for x in legs_delta_z)
     num_steps = int(max_delta / ms.step)
     leg_delta_step = [round(x / num_steps, 4) for x in legs_delta_z]
 
     for m in range(num_steps):
-        for i in range(len(leg_seq)):
-            leg_seq[i].move_end_point(0, 0, leg_delta_step[i])
-        ms.post_movement_actions()
+    """
+    for i in range(len(leg_seq)):
+        leg_seq[i].move_end_point(0, 0, legs_delta_z[i])
+    ms.post_movement_actions()
 
 
 def leg_move_with_compensation(ms, leg_num, delta_x, delta_y):
@@ -736,92 +614,144 @@ def reposition_legs(ms, delta_xy):
     ms.body_to_center()
 
 def move_2_legs(ms, delta_y, sync_body=True):
-    z = 4
+    z = 6
     full_leg_delta_1 = [0, delta_y, z]
     full_leg_delta_2 = [0, 0, -z]
-    max_delta_1 = max(abs(x) for x in full_leg_delta_1)
-    max_delta_2 = max(abs(x) for x in full_leg_delta_2)
-    num_steps_1 = int(max_delta_1 / ms.step)
-    num_steps_2 = int(max_delta_2 / ms.step)
-    leg_delta_1 = [round(x / num_steps_1, 4) for x in full_leg_delta_1]
-    leg_delta_2 = [round(x / num_steps_2, 4) for x in full_leg_delta_2]
+    quarter_step = round(delta_y/4, 1)
+    three_quarter_step = round(3*delta_y/4, 1)
 
-    for m in range(num_steps_1):
-        for leg in [ms.Leg2, ms.Leg4]:
-            leg.move_end_point(*leg_delta_1)
-        ms.post_movement_actions()
-        if sync_body:
-            ms.body_to_center()
+    #ms.body_movement(0, quarter_step, 0)
+
+    for leg in [ms.Leg2, ms.Leg4]:
+        leg.move_end_point(*full_leg_delta_1)
+    ms.post_movement_actions()
+
+    for leg in [ms.Leg2, ms.Leg4]:
+        leg.move_end_point(*full_leg_delta_2)
+    ms.post_movement_actions()
+
+    #ms.body_movement(0, three_quarter_step, 0)
+    ms.body_movement(0, delta_y, 0)
+
+    for leg in [ms.Leg1, ms.Leg3]:
+        leg.move_end_point(*full_leg_delta_1)
+    ms.post_movement_actions()
+
+    for leg in [ms.Leg1, ms.Leg3]:
+        leg.move_end_point(*full_leg_delta_2)
+    ms.post_movement_actions()
+
+    """
+    print('Leg 2 and 4 up')
+    for leg in [ms.Leg2, ms.Leg4]:
+        leg.move_end_point(*full_leg_delta_1)
+    ms.post_movement_actions()
+    if sync_body:
+        print('Sync body 1')
+        ms.body_to_center()
     
-    for m in range(num_steps_2):
-        for leg in [ms.Leg2, ms.Leg4]:
-            leg.move_end_point(*leg_delta_2)
-        ms.post_movement_actions()
-        if sync_body:
-            ms.body_to_center()
+    print('Leg 2 and 4 down')
+    for leg in [ms.Leg2, ms.Leg4]:
+        leg.move_end_point(*full_leg_delta_2)
+    ms.post_movement_actions()
+    if sync_body:
+        print('Sync body 2')
+        ms.body_to_center()
         
     if not sync_body:
+        print('Sync body 3')
         ms.body_to_center()
         #ms.body_movement(0, 5, 0)
+
+    print('Leg 1 and 3 up')
+    for leg in [ms.Leg1, ms.Leg3]:
+        leg.move_end_point(*full_leg_delta_1)
+    ms.post_movement_actions()
+    if sync_body:
+        print('Sync body 4')
+        ms.body_to_center()
     
-    for m in range(num_steps_1):
-        for leg in [ms.Leg1, ms.Leg3]:
-            leg.move_end_point(*leg_delta_1)
-        ms.post_movement_actions()
-        if sync_body:
-            ms.body_to_center()
-    
-    for m in range(num_steps_2):
-        for leg in [ms.Leg1, ms.Leg3]:
-            leg.move_end_point(*leg_delta_2)
-        ms.post_movement_actions()
-        if sync_body:
-            ms.body_to_center()
+    print('Leg 1 and 3 down')
+    for leg in [ms.Leg1, ms.Leg3]:
+        leg.move_end_point(*full_leg_delta_2)
+    ms.post_movement_actions()
+    if sync_body:
+        print('Sync body 5')
+        ms.body_to_center()
         
     if not sync_body:
+        print('Sync body 6')
         ms.body_to_center()
+    """
 
 def move_2_legs_x3(ms, delta_y):
-    z = 4
+    z = 5
     full_leg_delta_1 = [0, delta_y, z]
     full_leg_delta_2 = [0, 0, -z]
     full_leg_delta_3 = [0, 2*delta_y, z]
-    max_delta_1 = max(abs(x) for x in full_leg_delta_1)
-    max_delta_2 = max(abs(x) for x in full_leg_delta_2)
-    max_delta_3 = max(abs(x) for x in full_leg_delta_3)
-    num_steps_1 = int(max_delta_1 / ms.step)
-    num_steps_2 = int(max_delta_2 / ms.step)
-    num_steps_3 = int(max_delta_3 / ms.step)
-    leg_delta_1 = [round(x / num_steps_1, 4) for x in full_leg_delta_1]
-    leg_delta_2 = [round(x / num_steps_2, 4) for x in full_leg_delta_2]
-    leg_delta_3 = [round(x / num_steps_3, 4) for x in full_leg_delta_3]
 
+    for leg in [ms.Leg2, ms.Leg4]:
+        leg.move_end_point(*full_leg_delta_1)
+    ms.post_movement_actions()
+
+    for leg in [ms.Leg2, ms.Leg4]:
+        leg.move_end_point(*full_leg_delta_2)
+    ms.post_movement_actions()
+
+    #ms.body_movement(0, three_quarter_step, 0)
+    ms.body_movement(0, delta_y, 0)
+
+    for leg in [ms.Leg1, ms.Leg3]:
+        leg.move_end_point(*full_leg_delta_3)
+    ms.post_movement_actions()
+
+    for leg in [ms.Leg1, ms.Leg3]:
+        leg.move_end_point(*full_leg_delta_2)
+    ms.post_movement_actions()
+
+    ms.body_movement(0, delta_y, 0)
+
+    for leg in [ms.Leg2, ms.Leg4]:
+        leg.move_end_point(*full_leg_delta_3)
+    ms.post_movement_actions()
+
+    for leg in [ms.Leg2, ms.Leg4]:
+        leg.move_end_point(*full_leg_delta_2)
+    ms.post_movement_actions()
+
+    ms.body_movement(0, delta_y, 0)
+
+    for leg in [ms.Leg1, ms.Leg3]:
+        leg.move_end_point(*full_leg_delta_1)
+    ms.post_movement_actions()
+
+    for leg in [ms.Leg1, ms.Leg3]:
+        leg.move_end_point(*full_leg_delta_2)
+    ms.post_movement_actions()
+
+    """
     # first pair up-forward for X
-    for m in range(num_steps_1):
-        for leg in [ms.Leg2, ms.Leg4]:
-            leg.move_end_point(*leg_delta_1)
-        ms.post_movement_actions()
-        ms.body_to_center(delta_y=-1)
+    for leg in [ms.Leg2, ms.Leg4]:
+        leg.move_end_point(*full_leg_delta_1)
+    ms.post_movement_actions()
+    ms.body_to_center(delta_y=-1)
     # first pair down
-    for m in range(num_steps_2):
-        for leg in [ms.Leg2, ms.Leg4]:
-            leg.move_end_point(*leg_delta_2)
-        ms.post_movement_actions()
-        ms.body_to_center()
+    for leg in [ms.Leg2, ms.Leg4]:
+        leg.move_end_point(*full_leg_delta_2)
+    ms.post_movement_actions()
+    ms.body_to_center()
 
     # second pair up-forward for 2X
-    for m in range(num_steps_3):
-        for leg in [ms.Leg1, ms.Leg3]:
-            leg.move_end_point(*leg_delta_3)
-        ms.post_movement_actions()
-        ms.body_to_center(delta_y=-1)
+    for leg in [ms.Leg1, ms.Leg3]:
+        leg.move_end_point(*full_leg_delta_3)
+    ms.post_movement_actions()
+    ms.body_to_center(delta_y=-1)
     # second pair down
-    for m in range(num_steps_2):
-        for leg in [ms.Leg1, ms.Leg3]:
-            leg.move_end_point(*leg_delta_2)
-        ms.post_movement_actions()
-        ms.body_to_center()    
-    """
+    for leg in [ms.Leg1, ms.Leg3]:
+        leg.move_end_point(*full_leg_delta_2)
+    ms.post_movement_actions()
+    ms.body_to_center()    
+    
     # first pair up-forward again for 2X
     for m in range(num_steps_3):
         for leg in [ms.Leg2, ms.Leg4]:
@@ -847,32 +777,27 @@ def move_2_legs_x3(ms, delta_y):
             leg.move_end_point(*leg_delta_2)
         ms.post_movement_actions()
         ms.body_to_center()    
-    """
-    
+        
     # first pair up-forward again for 2X
-    for m in range(num_steps_3):
-        for leg in [ms.Leg2, ms.Leg4]:
-            leg.move_end_point(*leg_delta_3)
-        ms.post_movement_actions()
-        ms.body_to_center(delta_y=-1)
+    for leg in [ms.Leg2, ms.Leg4]:
+        leg.move_end_point(*full_leg_delta_3)
+    ms.post_movement_actions()
+    ms.body_to_center(delta_y=-1)
     # first pair down
-    for m in range(num_steps_2):
-        for leg in [ms.Leg2, ms.Leg4]:
-            leg.move_end_point(*leg_delta_2)
-        ms.post_movement_actions()
-        ms.body_to_center()
+    for leg in [ms.Leg2, ms.Leg4]:
+        leg.move_end_point(*full_leg_delta_2)
+    ms.post_movement_actions()
+    ms.body_to_center()
     
     # second pair up-forward for X
-    for m in range(num_steps_1):
-        for leg in [ms.Leg1, ms.Leg3]:
-            leg.move_end_point(*leg_delta_1)
-        ms.post_movement_actions()
-        ms.body_to_center(delta_y=-1)
+    for leg in [ms.Leg1, ms.Leg3]:
+        leg.move_end_point(*full_leg_delta_1)
+    ms.post_movement_actions()
+    ms.body_to_center(delta_y=-1)
     # second pair down
-    for m in range(num_steps_2):
-        for leg in [ms.Leg1, ms.Leg3]:
-            leg.move_end_point(*leg_delta_2)
-        ms.post_movement_actions()
-        ms.body_to_center()
-    
+    for leg in [ms.Leg1, ms.Leg3]:
+        leg.move_end_point(*full_leg_delta_2)
+    ms.post_movement_actions()
+    ms.body_to_center()
+    """
     
