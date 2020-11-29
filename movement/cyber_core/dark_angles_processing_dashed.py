@@ -1,14 +1,16 @@
 import math
 from math import pi, sin, cos
 import numpy as np
+from functools import lru_cache
 
 target_alpha = 0
 target_beta = 0
 target_gamma = 0
 
-def get_leg_angles(delta_x, delta_z, mode, lengths):
-    print(f'Looking for angles for ({delta_x}, {delta_z}, {mode}, {lengths})')
-    possible_angles = find_angles(delta_x, delta_z, lengths)
+@lru_cache(maxsize=None)
+def get_leg_angles(delta_x, delta_z, mode, a, b, c, d):
+    print(f'Looking for angles for ({delta_x}, {delta_z}, {mode}, {[a, b, c, d]})')
+    possible_angles = find_angles(delta_x, delta_z, a, b, c, d)
 
     # recalculating to check for some error
     """
@@ -77,8 +79,7 @@ def check_angles(angles, mode):
     return True, 'All ok'
 
 
-def find_angles(Dx, Dy, lengths):
-    a, b, c, d = lengths
+def find_angles(Dx, Dy, a, b, c, d):
     #print(f'Dx, Dy : ({Dx}, {Dy})')
     results = []
     full_dist = math.sqrt(Dx ** 2 + Dy ** 2)

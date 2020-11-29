@@ -190,6 +190,9 @@ class MovementHistory:
     def __init__(self):
         self.angles_history = []
 
+    def reset_history(self):
+        self.angles_history = []
+
     def add_angles_snapshot(self, leg1, leg2, leg3, leg4):
         # angles are : gamma1, beta1, alpha1, tetta1, gamma2, beta2, alpha2, tetta2 ...
         # for leg1 tetta = 45 means 0 for servo
@@ -272,6 +275,7 @@ class Leg:
                                 self.beta,
                                 self.gamma]))
 
+    
     @staticmethod
     def move_point(point, delta_x, delta_y, delta_z):
         point.x += delta_x
@@ -319,7 +323,10 @@ class Leg:
         alpha, beta, gamma = get_leg_angles(l, 
                                             delta_z, 
                                             mode, 
-                                            [self.len_a, self.len_b, self.len_c, self.len_d])
+                                            self.len_a, 
+                                            self.len_b, 
+                                            self.len_c, 
+                                            self.len_d)
 
         Bx = self.len_a * cos(alpha)
         By = self.len_a * sin(alpha)
@@ -377,6 +384,14 @@ class MovementSequence:
 
     def save_angles(self):
         self.mh.add_angles_snapshot(self.Leg1, self.Leg2, self.Leg3, self.Leg4)
+
+    def reset_angles_history(self):
+        #print('History before :')
+        #print(self.mh.angles_history)
+        #print('New history :')
+        self.mh.reset_history()
+        self.save_angles()
+        #print(self.mh.angles_history)
 
     def post_movement_actions(self):
         # self.calculate_unsupporting_leg()
@@ -613,12 +628,30 @@ def reposition_legs(ms, delta_xy):
 
     ms.body_to_center()
 
+def reposition_2_legs(ms, delta_x, delta_y):
+    z = 6
+
+    ms.Leg2.move_end_point(delta_x, -delta_y, z)
+    ms.Leg4.move_end_point(-delta_x, delta_y, z)
+    ms.post_movement_actions()
+
+    ms.Leg2.move_end_point(0, 0, -z)
+    ms.Leg4.move_end_point(0, 0, -z)
+    ms.post_movement_actions()
+
+    ms.Leg1.move_end_point(delta_x, delta_y, z)
+    ms.Leg3.move_end_point(-delta_x, -delta_y, z)
+    ms.post_movement_actions()
+
+    ms.Leg1.move_end_point(0, 0, -z)
+    ms.Leg3.move_end_point(0, 0, -z)
+    ms.post_movement_actions()
+
+
 def move_2_legs(ms, delta_y, sync_body=True):
     z = 6
     full_leg_delta_1 = [0, delta_y, z]
     full_leg_delta_2 = [0, 0, -z]
-    quarter_step = round(delta_y/4, 1)
-    three_quarter_step = round(3*delta_y/4, 1)
 
     #ms.body_movement(0, quarter_step, 0)
 

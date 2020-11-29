@@ -358,7 +358,17 @@ class LX16A:
      s = struct.unpack("<BBBBBBB",rpacket)
  #    print(s)
      return s[5]
-
+   
+  def read_values(self, id):
+      try:
+         pos = self.readPosition(id)
+         temp = self.readTemperature(id)
+         volt = self.readVoltage(id)
+         target = self.readServoTarget(id)
+         print('{5:2d}. Pos: {0:5d}. Target: {1:5d}, {2:5d}. Temp: {3:5d}. Volt: {4:5d}'
+               .format(pos, target[0], target[1], temp, volt, id))
+      except:
+         print('Could not read values from servo {0}'.format(id))
 
 def get_position(servo, id):
    pos = servo.readPosition(id)
@@ -403,6 +413,14 @@ if __name__ == '__main__':
             read_values(m, j)
             j += 1
    """
+   import time
+   read_values(m2, 7)
+   m2.moveServoToAngle(7, 50, 1000)
+   time.sleep(1.2)
+   read_values(m2, 7)
+   
+
+   
 
    import datetime
    m1.moveServoToAngle(4, 0, 1000)
