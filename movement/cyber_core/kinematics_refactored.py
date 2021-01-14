@@ -51,8 +51,18 @@ def get_angle_by_coords(x1, y1):
     if x1 < 0 and y1 < 0:
         return initial_angle + math.pi
 
+def turn_on_angle_new(start_x, start_y, x1, y1, angle):
+    print(f'x1, y1 : {round(x1, 2)}, {round(y1, 2)}')
+    l = math.sqrt((x1 - start_x) ** 2 + (y1 - start_y) ** 2)
+    initial_angle = get_angle_by_coords((x1 - start_x), (y1 - start_y))
+    result_angle = angle + initial_angle
+    print(f'{math.degrees(initial_angle)} -> {math.degrees(result_angle)}')
+
+    return round(start_x + math.cos(result_angle) * l, 2), \
+           round(start_y + math.sin(result_angle) * l, 2)
 
 def turn_on_angle(x1, y1, angle):
+    print(f'x1, y1 : {round(x1, 2)}, {round(y1, 2)}')
     l = math.sqrt(x1 ** 2 + y1 ** 2)
     initial_angle = get_angle_by_coords(x1, y1)
     result_angle = angle + initial_angle
@@ -63,7 +73,7 @@ def turn_on_angle(x1, y1, angle):
 
 
 class Leg:
-    d = 5.3
+    d = 6.7
     a = 8.7
     b = 6.9
     c = 13.2
@@ -220,7 +230,7 @@ def check_angles(angles):
     if gamma < -110 or gamma > 0:
         return False
 
-    mode = 40
+    mode = 90 # 40
     if alpha + beta + gamma < -90 - mode or alpha + beta + gamma > -90 + mode:
         return False
 
@@ -263,6 +273,11 @@ class MovementSequence:
     def __init__(self, legs_offset_h, legs_offset_v):
         self.legs_offset_v = legs_offset_v
         self.legs_offset_h = legs_offset_h
+
+        self.current_legs_offset_v = self.legs_offset_v
+        self.current_legs_offset_h = self.legs_offset_h
+
+        self.legs_deltas = {1 : [0, 0, 0], 2 : [0, 0, 0], 3 : [0, 0, 0], 4 : [0, 0, 0]}
 
         self.current_angle = 0
         self.margin = 3 #4
@@ -369,6 +384,7 @@ class MovementSequence:
         self.add_angles_snapshot()
 
     def body_movement(self, delta_x, delta_y, delta_z):
+        print(f'Body movement [{delta_x}, {delta_y}, {delta_z}]')
         if delta_x == delta_y == delta_z == 0:
             return
 
@@ -376,6 +392,8 @@ class MovementSequence:
             leg.move_mount_point(delta_x, delta_y, delta_z)
 
         self.add_angles_snapshot()
+
+        self.current_legs_offset_v -= delta_z
 
     def body_to_center(self, delta_y=0, delta_x=0):
         # move body to center
@@ -391,8 +409,8 @@ class MovementSequence:
         avg_d_x /= 4
         avg_d_y /= 4
 
-        self.body_movement(avg_d_x - avg_o_x + delta_x,
-                           avg_d_y - avg_o_y + delta_y,
+        self.body_movement(round(avg_d_x - avg_o_x + delta_x, 2),
+                           round(avg_d_y - avg_o_y + delta_y, 2),
                            0)
 
     # body compensation for moving up one leg
@@ -445,10 +463,16 @@ class MovementSequence:
         self.move_leg_endpoint(leg_num, [0, 0, -self.leg_up])
         #self.compensated_leg_movement(leg_num, [0, 0, -self.leg_up])
 
-    def move_leg_endpoint(self, leg_num, leg_delta):
+    def move_leg_endpoint(self, leg_num, leg_delta):        
         self.legs[leg_num].move_end_point(*leg_delta)
+        self.legs_deltas[leg_num] = [x + y for x, y in zip(self.legs_deltas[leg_num], leg_delta)]        
         self.add_angles_snapshot()
 
+    def print_legs_diff(self):
+        print(self.legs_deltas)
+        #for leg_num, leg in self.legs.items():
+        #    print(f'Delta {leg_num} : [{round(leg.D.x - leg.O.x, 2)}, {round(leg.D.y - leg.O.y, 2)}, {round(leg.D.z - leg.O.z, 2)}]')
+        
     # 1-legged movements
     def move_body_straight(self, delta_x, delta_y, leg_seq=[1, 2, 3, 4]):
         for leg_number in leg_seq:
@@ -456,26 +480,52 @@ class MovementSequence:
         self.body_to_center()
 
     # 2-legged movements
-    def move_2_legs(self, delta_y):
-        full_leg_delta_1 = [0, delta_y, self.leg_up]
-        full_leg_delta_2 = [0, 0, -self.leg_up]
+    def move_2_legs(self, delta_y, steps=0):
+        leg_delta_1 = [0, delta_y, self.leg_up]
+        leg_delta_2 = [0, 0, -self.leg_up]
+        leg_delta_3 = [0, 2*delta_y, self.leg_up]
 
         for leg in [self.legs[2], self.legs[4]]:
-            leg.move_end_point(*full_leg_delta_1)
+            leg.move_end_point(*leg_delta_1)
         self.add_angles_snapshot()
 
         for leg in [self.legs[2], self.legs[4]]:
-            leg.move_end_point(*full_leg_delta_2)
+            leg.move_end_point(*leg_delta_2)
         self.add_angles_snapshot()
 
         self.body_movement(0, delta_y, 0)
 
+        ##########
+        if steps > 1:
+            for _ in range(steps-1):
+                for leg in [self.legs[1], self.legs[3]]:
+                    leg.move_end_point(*leg_delta_3)
+                self.add_angles_snapshot()
+
+                for leg in [self.legs[1], self.legs[3]]:
+                    leg.move_end_point(*leg_delta_2)
+                self.add_angles_snapshot()
+
+                self.body_movement(0, delta_y, 0)
+
+                for leg in [self.legs[2], self.legs[4]]:
+                    leg.move_end_point(*leg_delta_3)
+                self.add_angles_snapshot()
+
+                for leg in [self.legs[2], self.legs[4]]:
+                    leg.move_end_point(*leg_delta_2)
+                self.add_angles_snapshot()
+
+                self.body_movement(0, delta_y, 0)
+
+        ##########
+
         for leg in [self.legs[1], self.legs[3]]:
-            leg.move_end_point(*full_leg_delta_1)
+            leg.move_end_point(*leg_delta_1)
         self.add_angles_snapshot()
 
         for leg in [self.legs[1], self.legs[3]]:
-            leg.move_end_point(*full_leg_delta_2)
+            leg.move_end_point(*leg_delta_2)
         self.add_angles_snapshot()
 
     def reposition_legs(self, delta_x, delta_y):
@@ -495,6 +545,8 @@ class MovementSequence:
         self.legs[3].move_end_point(0, 0, -self.leg_up)
         self.add_angles_snapshot()
 
+        self.current_legs_offset_h += delta_x
+    """
     def turn_body_and_legs(self, angle_deg):
         angle = math.radians(angle_deg)
 
@@ -527,9 +579,85 @@ class MovementSequence:
         self.add_angles_snapshot()
 
         self.turn_only_body(angle_deg)
+    """
+    def turn_move(self, angle_deg):
+        self.turn(-angle_deg)
+        self.turn(angle_deg, only_body=True)  
 
+    def turn(self, angle_deg, only_body=False):
+        angle = math.radians(angle_deg)
 
+        center_x = round((self.legs[2].O.x + self.legs[4].O.x) / 2, 2)
+        center_y = round((self.legs[2].O.y + self.legs[4].O.y) / 2, 2)
+
+        for leg in [self.legs[2], self.legs[4]]:
+            x_new, y_new = turn_on_angle_new(center_x, center_y, leg.D.x, leg.D.y, angle)
+            delta_x = x_new - leg.D.x
+            delta_y = y_new - leg.D.y
+
+            leg.move_end_point(delta_x, delta_y, self.leg_up)
+
+        if not only_body:
+            self.add_angles_snapshot()
+
+        for leg in [self.legs[2], self.legs[4]]:
+            leg.move_end_point(0, 0, -self.leg_up)
+
+        if not only_body:
+            self.add_angles_snapshot()
+
+        for leg in [self.legs[1], self.legs[3]]:
+            x_new, y_new = turn_on_angle_new(center_x, center_y, leg.D.x, leg.D.y, angle)
+            delta_x = x_new - leg.D.x
+            delta_y = y_new - leg.D.y
+
+            leg.move_end_point(delta_x, delta_y, self.leg_up)
+
+        if not only_body:
+            self.add_angles_snapshot()
+
+        for leg in [self.legs[1], self.legs[3]]:
+            leg.move_end_point(0, 0, -self.leg_up)
+
+        self.add_angles_snapshot()
+
+    """
+    def old_turn(self, angle_deg, only_body=False):
+        angle = math.radians(angle_deg)
+
+        for leg in [self.legs[2], self.legs[4]]:
+            x_new, y_new = turn_on_angle(leg.D.x, leg.D.y, angle)
+            delta_x = x_new - leg.D.x
+            delta_y = y_new - leg.D.y
+
+            leg.move_end_point(delta_x, delta_y, self.leg_up)
+
+        if not only_body:
+            self.add_angles_snapshot()
+
+        for leg in [self.legs[2], self.legs[4]]:
+            leg.move_end_point(0, 0, -self.leg_up)
+
+        if not only_body:
+            self.add_angles_snapshot()
+
+        for leg in [self.legs[1], self.legs[3]]:
+            x_new, y_new = turn_on_angle(leg.D.x, leg.D.y, angle)
+            delta_x = x_new - leg.D.x
+            delta_y = y_new - leg.D.y
+
+            leg.move_end_point(delta_x, delta_y, self.leg_up)
+
+        if not only_body:
+            self.add_angles_snapshot()
+
+        for leg in [self.legs[1], self.legs[3]]:
+            leg.move_end_point(0, 0, -self.leg_up)
+
+        self.add_angles_snapshot()
+    """
     # no leg movements
+    """
     def turn_only_body(self, angle_deg):
         angle = math.radians(angle_deg)
 
@@ -540,7 +668,7 @@ class MovementSequence:
             print(f'[{leg.O.x},{leg.O.y}] -> [{x_new}, {y_new}]')
             leg.move_mount_point(delta_x, delta_y, 0)
         self.add_angles_snapshot()
-
+    """
     def look_on_angle(self, angle):
         current_angle = self.current_angle
 
@@ -563,3 +691,54 @@ class MovementSequence:
         self.add_angles_snapshot()
 
         self.current_angle = angle
+
+    # fun moves
+    def hit(self, leg_num):
+        self.body_compensation_for_a_leg(leg_num)
+        self.legs[leg_num].move_end_point(-8, 0, 10)
+        self.add_angles_snapshot()
+        self.legs[leg_num].move_end_point(0, 18, 0)
+        self.add_angles_snapshot()
+        self.legs[leg_num].move_end_point(0, -18, 0)
+        self.add_angles_snapshot()
+        self.legs[leg_num].move_end_point(8, 0, -10)
+        self.add_angles_snapshot()
+        self.body_to_center()
+
+    # dance moves
+    def opposite_legs_up(self, leg_up, leg_forward):
+        for leg in [self.legs[1], self.legs[3]]:
+            leg.move_end_point(0, 0, leg_up)
+        self.add_angles_snapshot()
+
+        self.legs[1].move_end_point(leg_forward, leg_forward, 5)
+        self.legs[3].move_end_point(-leg_forward, -leg_forward, 5)
+
+        self.add_angles_snapshot()
+
+        self.legs[1].move_end_point(-leg_forward, -leg_forward, -5)
+        self.legs[3].move_end_point(leg_forward, leg_forward, -5)
+
+        self.add_angles_snapshot()
+        
+        for leg in [self.legs[1], self.legs[3]]:
+            leg.move_end_point(0, 0, -leg_up)
+        self.add_angles_snapshot()
+
+        for leg in [self.legs[2], self.legs[4]]:
+            leg.move_end_point(0, 0, leg_up)
+        self.add_angles_snapshot()
+        
+        self.legs[2].move_end_point(leg_forward, -leg_forward, 5)
+        self.legs[4].move_end_point(-leg_forward, leg_forward, 5)        
+
+        self.add_angles_snapshot()
+
+        self.legs[2].move_end_point(-leg_forward, leg_forward, -5)
+        self.legs[4].move_end_point(leg_forward, -leg_forward, -5)        
+
+        self.add_angles_snapshot()
+        
+        for leg in [self.legs[2], self.legs[4]]:
+            leg.move_end_point(0, 0, -leg_up)
+        self.add_angles_snapshot()
