@@ -1,4 +1,5 @@
 import time
+import datetime
 import copy
 
 from commands import get_command
@@ -20,7 +21,9 @@ ms = MovementSequence(legs_offset_v=-3, legs_offset_h=18)
 #print('Time taken : {0}'.format(datetime.datetime.now() - start))
 fnx = Fenix()
 #fnx.set_speed(500)
-movement_speed = 50
+movement_speed = 500
+run_up_speed = 100 
+run_down_speed = 250
 
 start = True
 while True:
@@ -49,12 +52,23 @@ while True:
             else:
                 fnx.set_speed(movement_speed)
 
-            for angles in sequence:
-                #print('Going for {0}'.format(angles))
-                print(f'Before : {inas.read()}')
-                fnx.set_servo_values_paced(angles)
-                print(f'After  : {inas.read()}')
-                #fnx.print_status()
+            start_time = datetime.datetime.now()
+            if 'f2l' in command:
+                for index, angles in enumerate(sequence):
+                    if index % 2 == 0:
+                        fnx.set_speed(run_up_speed)
+                    else:
+                        fnx.set_speed(run_down_speed)
+
+                    fnx.set_servo_values_paced(angles)
+            else:
+                for angles in sequence:
+                    #print('Going for {0}'.format(angles))
+                    #print(f'Before : {inas.read()}')
+                    fnx.set_servo_values_paced(angles)
+                    #print(f'After  : {inas.read()}')
+                    #fnx.print_status()
+            print(f'Step took : {datetime.datetime.now() - start_time}')
 
     else:
         time.sleep(0.25)

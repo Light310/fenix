@@ -280,8 +280,8 @@ class MovementSequence:
         self.legs_deltas = {1 : [0, 0, 0], 2 : [0, 0, 0], 3 : [0, 0, 0], 4 : [0, 0, 0]}
 
         self.current_angle = 0
-        self.margin = 3 #4
-        self.leg_up = 6
+        self.margin = 3 # 4
+        self.leg_up = 4 # 6
         self.mode = 90  # needed?
         self.mount_point_offset = 3.8
 
@@ -329,7 +329,15 @@ class MovementSequence:
                         tetta = round(cur_value + 45, 2)
                     else:
                         tetta = round(cur_value - 45, 2)
-                    if tetta > 60 or tetta < - 60:
+                    # -- experimental --
+                    if tetta > 70:
+                        tetta -= 360
+                        print(f'Tetta converted : -360')
+                    if tetta < -70:
+                        tetta += 360
+                        print(f'Tetta converted : +360')
+                    # -- experimental --
+                    if tetta > 70 or tetta < - 70:
                         raise Exception(f'Wrong tetta angle : {tetta}')
                     out_angles.append(tetta)
                 else:
@@ -383,7 +391,7 @@ class MovementSequence:
         leg.move_end_point(leg_delta[0], leg_delta[1], leg_delta[2])
         self.add_angles_snapshot()
 
-    def body_movement(self, delta_x, delta_y, delta_z):
+    def body_movement(self, delta_x, delta_y, delta_z, snapshot=True):
         print(f'Body movement [{delta_x}, {delta_y}, {delta_z}]')
         if delta_x == delta_y == delta_z == 0:
             return
@@ -391,7 +399,8 @@ class MovementSequence:
         for leg in self.legs.values():
             leg.move_mount_point(delta_x, delta_y, delta_z)
 
-        self.add_angles_snapshot()
+        if snapshot:
+            self.add_angles_snapshot()
 
         self.current_legs_offset_v -= delta_z
 
@@ -491,9 +500,11 @@ class MovementSequence:
 
         for leg in [self.legs[2], self.legs[4]]:
             leg.move_end_point(*leg_delta_2)
-        self.add_angles_snapshot()
+        
+        self.body_movement(0, delta_y, 0) # it adds snapshot itself
 
-        self.body_movement(0, delta_y, 0)
+        #self.add_angles_snapshot()
+        #self.body_movement(0, delta_y, 0)
 
         ##########
         if steps > 1:
@@ -504,9 +515,11 @@ class MovementSequence:
 
                 for leg in [self.legs[1], self.legs[3]]:
                     leg.move_end_point(*leg_delta_2)
-                self.add_angles_snapshot()
-
+                
                 self.body_movement(0, delta_y, 0)
+
+                #self.add_angles_snapshot()
+                #self.body_movement(0, delta_y, 0)
 
                 for leg in [self.legs[2], self.legs[4]]:
                     leg.move_end_point(*leg_delta_3)
@@ -514,9 +527,11 @@ class MovementSequence:
 
                 for leg in [self.legs[2], self.legs[4]]:
                     leg.move_end_point(*leg_delta_2)
-                self.add_angles_snapshot()
 
                 self.body_movement(0, delta_y, 0)
+
+                #self.add_angles_snapshot()
+                #self.body_movement(0, delta_y, 0)
 
         ##########
 
