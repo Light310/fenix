@@ -2,6 +2,7 @@
 from time import sleep
 from serial import Serial
 import struct
+from modules.utils import timing
 
 
 neutral = {
@@ -9,15 +10,18 @@ neutral = {
    2 : 483,
    3 : 465,
    4 : 480,
-   5 : 475,
+   #5 : 475,
+   5 : 485, # 44
    6 : 490,
    7 : 480,
    8 : 500,
-   9 : 500,
+   #9 : 500,
+   9 : 505, # 137
    10 : 506,
    11 : 507,
    12 : 521,
-   13 : 520,
+   #13 : 520,
+   13 : 527, # 227
    14 : 517,
    15 : 513,
    16 : 497
@@ -75,7 +79,11 @@ class LX16A:
      self.serial.setDTR(1)
      self.TX_DELAY_TIME = 0.00002 
      self.Header = struct.pack("<BB",0x55,0x55)
+     self.Port = Port
 
+  def reset(self):
+     self.serial = Serial(self.Port, baudrate=115200, timeout= 0.001)
+     self.serial.setDTR(1)     
 
   # envoi du packet  ajout du header et du checksum
   def sendPacket(self,packet):
@@ -126,7 +134,7 @@ class LX16A:
             target = self.readServoTarget(id)[0]
             #print('Target required : {0}. Target real : {1}'.format(position, target))
             if target != position:
-               print('Target required : {0}. Target real : {1}'.format(position, target))
+               print(f'Id : {id}. Target required : {position}. Target real : {target}')
                print('============ALARM=============')
                continue
             #print('{0} attempt succeded'.format(i))
@@ -282,7 +290,20 @@ class LX16A:
 
   #lire la position du servo
   #la valeur peut etre negative alors c'est  signed short
-  def readPosition(self,id):     
+  def readPosition(self,id):
+     for attempt in range(3):
+       try:
+         packet = struct.pack("<BBB",id,3,self.SERVO_POS_READ)
+         rpacket = self.sendReceivePacket(packet,5)
+         s = struct.unpack("<BBBBBhB",rpacket)
+         return s[5]
+       except Exception as e:
+          print(f'Can not read values from servo {id}. Attempt {attempt}. \nException : {e}')
+          self.reset()
+         
+     raise Exception('Can not read values from servo {0}'.format(id))
+
+  def readPosition_old(self,id):
        try:
          packet = struct.pack("<BBB",id,3,self.SERVO_POS_READ)
          rpacket = self.sendReceivePacket(packet,5)
@@ -405,21 +426,44 @@ if __name__ == '__main__':
    m4 = LX16A(Port='/dev/ttyAMA1') # 1-4   # 13-16
    #m2.moveServoToAngle(7, 45)
    
-   
    for m in range(1):
       j = 1
       for m in [m1, m2, m3, m4]:
          for _ in range(4):
             read_values(m, j)
             j += 1
+   
+   
+   """
+   m1.moveServoToAngle(1, 0.0, 2000)
+   m1.moveServoToAngle(2, 24.84, 2000)
+   m1.moveServoToAngle(3, 28.62, 2000)
+   m1.moveServoToAngle(4, -86.22, 2000)
+   
+   # -9.94, 23.7, 27.24, -78.46
+   m1.moveServoToAngle(1, -10, 2000)
+   m1.moveServoToAngle(2, 23.7, 2000)
+   m1.moveServoToAngle(3, 27.24, 2000)
+   m1.moveServoToAngle(4, -78.46, 2000)
+   """
+
+   # if alpha < -35 or alpha > 55:        ok
+   
+   #if beta < -115 or beta > -20:  real angle is 20 - 115 seems ok
+    
+   #if gamma < -110 or gamma > 0: seems ok, tho 0 is kinda hard, mb should stay -10 (tho only for leg 4)
+
+   #m3.moveServoToAngle(12, -110, 2000)
+   #m4.moveServoToAngle(14, 55, 2000)
+   #m2.moveServoToAngle(6, 55, 2000)
+   #m2.moveServoToAngle(7, 115, 2000)
+   
    """
    import time
    read_values(m2, 7)
    m2.moveServoToAngle(7, 50, 1000)
    time.sleep(1.2)
    read_values(m2, 7)
-   
-
    
 
    import datetime

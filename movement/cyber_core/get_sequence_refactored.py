@@ -22,8 +22,20 @@ def calculate_sequence(ms, command):
             ms.move_2_legs(command_value)
         else:
             ms.move_2_legs(command_value, command_value_2)
+    elif command_text == 'climb2leg' or command_text == 'c2l':
+        ms.climb_2_legs(command_value)
+    elif command_text == 'run2leg' or command_text == 'r2l':
+        # same movement, but another speed is applied in move module
+        if command_value_2 is None:
+            ms.move_2_legs(command_value)
+        else:
+            ms.move_2_legs(command_value, command_value_2)
     elif command_text == 'backward2leg' or command_text == 'b2l':
-        ms.move_2_legs(-command_value)
+        if command_value_2 is None:
+            ms.move_2_legs(-command_value)
+        else:
+            ms.move_2_legs(-command_value, command_value_2)
+        #ms.move_2_legs(-command_value)
     elif command_text == 'forward' or command_text == 'f':
         ms.move_body_straight(0, command_value, leg_seq=[1, 4, 3, 2])
     elif command_text == 'backward' or command_text == 'b':
@@ -40,6 +52,8 @@ def calculate_sequence(ms, command):
         ms.look_on_angle(-command_value)
     elif command_text == 'lookhor' or command_text == 'lh':
         ms.turn(command_value, only_body=True)
+    elif command_text == 'turn2leg' or command_text == 't2l':
+        ms.turn_move(command_value)
     elif command_text == 'turn' or command_text == 't':
         turn = command_value
         current_turn = 0
@@ -71,17 +85,19 @@ def calculate_sequence(ms, command):
     elif command_text == 'center' or command_text == 'c':
         ms.body_to_center()
     elif command_text == 'start':
-        target_height = 14
+        target_height = 12
         target_width = 14
         # current_legs_offset_v is below zero
         ms.body_movement(0, 0, ms.current_legs_offset_v + target_height)
         ms.reposition_legs(target_width - ms.current_legs_offset_h, target_width - ms.current_legs_offset_h)
+        #ms.leg_up = 5
     elif command_text == 'end':
         target_height = 3
         target_width = 18
         # current_legs_offset_v is below zero
         ms.reposition_legs(target_width - ms.current_legs_offset_h, target_width - ms.current_legs_offset_h)
         ms.body_movement(0, 0, ms.current_legs_offset_v + target_height)
+        #ms.leg_up = 4
     elif command_text == 'dance':
         ms.opposite_legs_up(command_value, command_value_2)
     elif command_text == 'hit':

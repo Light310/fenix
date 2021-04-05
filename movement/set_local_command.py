@@ -19,14 +19,16 @@ symbols = {
 }
 
 try:
+    write_command_file('none')
+
     while True:
-        symbol = input('Enter command:\n')
-        print('Got symbol : {0}'.format(symbol))
-        command = symbols.get(symbol, 'none')
+        command = input('Enter command:\n')
+        #print('Got symbol : {0}'.format(symbol))
+        #command = symbols.get(symbol, 'none')
         write_command_file(command)
         if command == 'exit':
             break
-        time.sleep(1.1)
+        time.sleep(0.3)
         write_command_file('none')
 
 except KeyboardInterrupt:
