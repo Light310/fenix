@@ -14,13 +14,14 @@ from modules.utils import write_legs_file
 
 #inas = FNX_INA219()
 
-ms = MovementSequence(legs_offset_v=-4, legs_offset_h=18)
+ms = MovementSequence(legs_offset_v=-10, legs_offset_h=16)
+#ms = MovementSequence(legs_offset_v=-10, legs_offset_h=18)
 
 fnx = Fenix()
 #fnx.set_speed(500)
-movement_speed = 600
-run_up_speed = 130
-run_down_speed = 200
+movement_speed = 500
+run_up_speed = 250 # 130
+run_down_speed = 250 # 130 # 200
 
 start = True
 while True:
@@ -56,13 +57,13 @@ while True:
                         fnx.set_speed(run_down_speed)
                     else:
                         fnx.set_speed(run_up_speed)
-                    print(f'\nStarting movement : {datetime.datetime.now()}')
-                    print('Going for {0}'.format(angles))
+                    #print(f'\nStarting movement : {datetime.datetime.now()}')
+                    #print('Going for {0}'.format(angles))
                     #print(f'Before : {inas.read()}')
                     fnx.set_servo_values_paced(angles)
                     #print(f'After  : {inas.read()}')
                     #fnx.print_status()
-                    print(f'Finished movement : {datetime.datetime.now()}')
+                    #rint(f'Finished movement : {datetime.datetime.now()}')
             elif 'forward' in command:
                 write_legs_file(0)
                 fnx.set_servo_values_paced(sequence[0])

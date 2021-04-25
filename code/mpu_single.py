@@ -9,4 +9,4 @@ mpu = mpu6050(gyro_offsets=gyro_calibration, accel_offsets=accel_calibration)
 
 while True:
     print(mpu.filter_step())
-    time.sleep(0.1)
+    time.sleep(0.01)

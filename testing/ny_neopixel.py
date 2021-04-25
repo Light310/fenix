@@ -10,7 +10,7 @@ from rpi_ws281x import PixelStrip, Color
 import argparse
 
 # LED strip configuration:
-LED_COUNT = 30        # Number of LED pixels.
+LED_COUNT = 18        # Number of LED pixels.
 LED_PIN = 18          # GPIO pin connected to the pixels (18 uses PWM!).
 # LED_PIN = 10        # GPIO pin connected to the pixels (10 uses SPI /dev/spidev0.0).
 LED_FREQ_HZ = 800000  # LED signal frequency in hertz (usually 800khz)
@@ -84,71 +84,29 @@ def theaterChaseRainbow(strip, wait_ms=50):
                 strip.setPixelColor(i + q, 0)
 
 
-"""
-# Main program logic follows:
-if __name__ == '__main__':
-    # Process arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--clear', action='store_true', help='clear the display on exit')
-    args = parser.parse_args()
-
-    # Create NeoPixel object with appropriate configuration.
-    strip = PixelStrip(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL)
-    # Intialize the library (must be called once before other functions).
-    strip.begin()
-
-    print('Press Ctrl-C to quit.')
-    if not args.clear:
-        print('Use "-c" argument to clear LEDs on exit')
-
-    try:
-
-        while True:
-            print('Color wipe animations.')
-            colorWipe(strip, Color(255, 0, 0))  # Red wipe
-            colorWipe(strip, Color(0, 255, 0))  # Blue wipe
-            colorWipe(strip, Color(0, 0, 255))  # Green wipe
-            print('Theater chase animations.')
-            theaterChase(strip, Color(127, 127, 127))  # White theater chase
-            theaterChase(strip, Color(127, 0, 0))  # Red theater chase
-            theaterChase(strip, Color(0, 0, 127))  # Blue theater chase
-            print('Rainbow animations.')
-            rainbow(strip)
-            rainbowCycle(strip)
-            theaterChaseRainbow(strip)
-
-    except KeyboardInterrupt:
-        if args.clear:
-            colorWipe(strip, Color(0, 0, 0), 10)
-"""
+# Create NeoPixel object with appropriate configuration.
 strip = PixelStrip(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL)
 # Intialize the library (must be called once before other functions).
 strip.begin()
 
-ln = 18
 try:
     while True:
-        for i in range(ln):
-            # strip.setPixelColor(i, Color(204, 102, 0)) # yellow
-            strip.setPixelColor(i, Color(255, 255, 255)) # white
-            # strip.setPixelColor(i, Color(0, 255, 255)) # cyan
-            # strip.setPixelColor(i, Color(0, 0, 255)) # blue
-            # strip.setPixelColor(i, Color(255, 227, 200)) # white-yellow
-            # strip.setPixelColor(i, Color(218, 112, 214)) # purple
-        for j in range(255):
-            for i in range(ln):
-                #strip.setPixelColor(i, Color(j, j, j))
-                strip.setBrightness(j)
-                strip.show()
-            time.sleep(0.01)
-        time.sleep(3)
-        for j in range(255):
-            for i in range(ln):
-                #strip.setPixelColor(i, Color(255-j, 255-j, 255-j))
-                strip.setBrightness(255-j)
-                strip.show()
-            time.sleep(0.01)
-        time.sleep(3)
+        """
+        print('Color wipe animations.')
+        colorWipe(strip, Color(255, 0, 0))  # Red wipe
+        colorWipe(strip, Color(0, 255, 0))  # Blue wipe
+        colorWipe(strip, Color(0, 0, 255))  # Green wipe
+        
+        print('Theater chase animations.')
+        theaterChase(strip, Color(127, 127, 127))  # White theater chase
+        theaterChase(strip, Color(127, 0, 0))  # Red theater chase
+        theaterChase(strip, Color(0, 0, 127))  # Blue theater chase
+        """
+        print('Rainbow animations.')
+        rainbow(strip)
+        rainbowCycle(strip)
+        #theaterChaseRainbow(strip)
+        
+
 except KeyboardInterrupt:
-    strip.setBrightness(0)
-    strip.show()
+    colorWipe(strip, Color(0, 0, 0), 10)

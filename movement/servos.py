@@ -1,5 +1,9 @@
 import time
+import datetime
 from lx16a_servos import LX16A, read_values
+from modules.utils import timing
+import multiprocessing
+import concurrent.futures
 
 
 class Fenix():
@@ -9,6 +13,14 @@ class Fenix():
         self.m3 = LX16A(Port='/dev/ttyAMA3') # 13-16 # 9-12
         self.m4 = LX16A(Port='/dev/ttyAMA1') # 1-4   # 13-16
         self.speed = 1000
+        self.max_speed = 100 # 130 # 0 is instant, 10000 is very slow
+        self.diff_from_target_limit = 5.0 # when it's time to start next movement
+        self.diff_from_prev_limit = 1.0 # start next movement if we're stuck
+        
+        # 0.16 sec / 60 degrees for 7.4V+
+        # 0.18 sec / 60 degrees for 6V+
+        # my max speed is for 45 degrees
+        # that means that max speed should be 120 for 7.4V+ and 135 for 6V+
 
     def print_status(self):
         j = 1
@@ -18,20 +30,41 @@ class Fenix():
                 j += 1
     
     def set_speed(self, new_speed):
-        if new_speed > 10000 or new_speed < 500:
-            raise Exception('Invalid speed value {0}. Should be between 500 and 10000'.format(new_speed))
+        if new_speed > 10000 or new_speed < self.max_speed:
+            raise Exception(f'Invalid speed value {new_speed}. Should be between {self.max_speed} and 10000')
         self.speed = new_speed
-
-    def get_current_angles(self):
+    
+    #@timing
+    def get_current_angles_not_threaded(self):
         current_angles = []
         j = 1
         for m in [self.m1, self.m2, self.m3, self.m4]:            
             for _ in range(4):
                 current_angles.append(m.readAngle(j))
                 j += 1
-        print('Current angles :')
-        print(current_angles)
+        #print('Current angles :')
+        #print(current_angles)
         return current_angles
+    
+    #@timing
+    def get_current_angles(self): # futures
+        
+        boards = [self.m1, self.m2, self.m3, self.m4]
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+            result = executor.map(self.get_angles_from_board, boards)
+        
+        current_angles = [val for board in result for val in board]
+        
+        return current_angles
+
+    # return 4 angles from one board
+    def get_angles_from_board(self, board):
+        angles = []
+        start_numbers = {self.m1 : 1, self.m2 : 5, self.m3 : 9, self.m4 : 13}
+        for j in range(start_numbers[board], start_numbers[board] + 4):
+            angles.append(board.readAngle(j))
+        return angles
 
     def angles_are_close(self, target_angles):
         """
@@ -56,43 +89,100 @@ class Fenix():
         return True
 
     def set_servo_values(self, angles, rate=0):
-        print('Sending values {0}'.format(angles))
-        self.get_angles_diff(angles)
+        print('Sending values \n{0}'.format(angles))
+        #self.get_angles_diff(angles)
         j = 1
         for m in [self.m1, self.m2, self.m3, self.m4]:
             for _ in range(4):
                 m.moveServoToAngle(j, angles[j-1], rate)
                 j += 1
+    #@timing
+    def send_command_to_servos(self, angles, rate):
+        j = 1
+        for m in [self.m1, self.m2, self.m3, self.m4]:
+            for _ in range(4):
+                m.moveServoToAngle(j, angles[j-1], rate)
+                j += 1
+    #@timing
+    def send_command_to_servos_futured(self, angles, rate):
+        boards = [self.m1, self.m2, self.m3, self.m4]        
+        args = [[board, angles, rate] for board in boards]
 
-    def set_servo_values_paced(self, angles):        
+        #print(f'Sending Time : {datetime.datetime.now()}')
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+            executor.map(lambda p: self.send_angles_to_board(*p), args)
+
+    # sends 4 angles to one board
+    def send_angles_to_board(self, board, angles, rate):
+        start_numbers = {self.m1 : 1, self.m2 : 5, self.m3 : 9, self.m4 : 13}
+        for j in range(start_numbers[board], start_numbers[board] + 4):
+            board.moveServoToAngle(j, angles[j-1], rate)
+
+
+    #@timing
+    def set_servo_values_paced(self, angles):
+        #print(f'Angles before : {self.get_current_angles()}')
         _, max_angle_diff = self.get_angles_diff(angles)
-        rate = round(max(self.speed * max_angle_diff / 45, 500)) # speed is normalized
-        print('Rate : {0}'.format(rate))
-        avg_wait = self.calculate_wait_time(max_angle_diff, rate)
-        print('Avg wait : {0}'.format(avg_wait))
+        rate = round(max(self.speed * max_angle_diff / 45, self.max_speed)) # speed is normalized
+        #avg_wait = self.calculate_wait_time(max_angle_diff, rate)
+        #print(f'Max angle diff : {max_angle_diff}. Rate : {rate}. Avg_wait : {avg_wait}')
+        #print(f'Max angle diff : {max_angle_diff}. Rate : {rate}.')
+        
+        """
         j = 1
         for m in [self.m1, self.m2, self.m3, self.m4]:
             for _ in range(4):
                 m.moveServoToAngle(j, angles[j-1], rate)
                 j += 1
-        time.sleep(avg_wait)
+        """
+        self.send_command_to_servos(angles, rate)
+        #self.send_command_to_servos_futured(angles, rate)        
+        time.sleep(0.05)
+        #time.sleep(avg_wait)
+
+        prev_angles = self.get_current_angles()
+        for _ in range(40):
+            time.sleep(0.03)
+            current_angles = self.get_current_angles()
+            # if diff from prev angles or target angles is small - continue
+            diff_from_target = self.get_angles_diff(angles, current_angles)
+            diff_from_prev = self.get_angles_diff(current_angles, prev_angles)
+            #print(f'Diff from target : {diff_from_target}')
+            #print(f'Diff from prev   : {diff_from_prev}')
+            #print(f'Time : {datetime.datetime.now()}')
+            
+            if diff_from_target[1] < self.diff_from_target_limit or diff_from_prev[1] < self.diff_from_prev_limit:
+                if diff_from_target[1] > self.diff_from_target_limit + 2:
+                    print('-----------ALARM-----------')
+                    print(f'Diff from target : {diff_from_target}')
+                    print(f'Diff from prev   : {diff_from_prev}')
+                #print('Ready to move further')
+                break
+            prev_angles = current_angles[:]
+        
+        #print(f'Angles after : {self.get_current_angles()}')
+        #time.sleep(0.5)
+        #print(f'After sleep : {self.get_current_angles()}\n')
         
 
-    def get_angles_diff(self, target_angles):
-        current_angles = self.get_current_angles()
+    def get_angles_diff(self, target_angles, test_angles=None):
+        if test_angles is None:
+            test_angles = self.get_current_angles()
+
         angles_diff = []
-        for current, target in zip(current_angles, target_angles):
+        for current, target in zip(test_angles, target_angles):
             angles_diff.append(round(current - target, 2))
-        print('Angles diff : {0}'.format(angles_diff))
+        #print('Angles diff : {0}'.format(angles_diff))
         max_angle_diff = max([abs(x) for x in angles_diff])
-        print('Max angle diff : {0}'.format(max_angle_diff))
+        #print('Max angle diff : {0}'.format(max_angle_diff))
         return angles_diff, max_angle_diff
 
     
     @staticmethod
     def calculate_wait_time(degrees, speed):
         #return round(abs(degrees / 40) * (speed / 1000), 2)
-        return round((0.75 * speed / 1000), 2)
+        #return round((0.75 * speed / 1000), 2)
+        return round((0.7*speed / 1000), 2)
 
     @staticmethod
     def calculate_speed(degrees, wait_time):
@@ -105,110 +195,20 @@ class Fenix():
 if __name__ == '__main__':
     fnx = Fenix()
     
-    fnx.set_speed(1000)
     """
-    angles = [0.0, 30.76, 80.3, -40.46, 0.0, 30.76, 80.3, -40.46, 0.0, 30.76, 80.3, -40.46, 0.0, 30.76, 80.3, -40.46]
-    fnx.set_servo_values_paced(angles)
+    for i in range(100):
+        print(fnx.get_current_angles())
+        print(fnx.get_current_angles_futures())
+        time.sleep(0.1)
+        
     
-    angles = [0.0, 33.54, 103.53, -41.01, -22.29, 23.81, 62.49, -51.32, 0.0, 13.38, 45.71, -36.67, 22.29, 23.81, 62.49, -51.32]
-    #fnx.set_servo_values(angles, rate=500)
-    fnx.set_servo_values_paced(angles)
-    #time.sleep(2)
-    angles = [0.0, 30.76, 80.3, -40.46, 0.0, 30.76, 80.3, -40.46, 0.0, 30.76, 80.3, -40.46, 0.0, 30.76, 80.3, -40.46]
-    fnx.set_servo_values_paced(angles)
-    """
-    
-    """
-    ground_z = -18, step_len = 6, k = 14, margin = 4, z_up = 7
+    fnx.set_speed(1500)
     sequence = [
-        [0.0, 13.86, 100.18, -2.68, 0.0, 13.86, 100.18, -2.68, 0.0, 13.86, 100.18, -2.68, 0.0, 13.86, 100.18, -2.68],
-        [-4.77, 10.37, 86.68, -0.69, 14.01, 12.76, 94.04, -1.72, 8.36, 12.06, 108.21, -4.85, -17.17, 13.95, 104.14, -0.81],
-        [6.82, 30.3, 53.33, -50.96, 14.01, 12.76, 94.04, -1.72, 8.36, 12.06, 108.21, -4.85, -17.17, 13.95, 104.14, -0.81],
-        [6.82, 30.3, 53.33, -50.96, 14.01, 12.76, 94.04, -1.72, 8.36, 12.06, 108.21, -4.85, -17.17, 13.95, 104.14, -0.81],
-        [6.82, -1.25, 50.33, -18.42, 14.01, 12.76, 94.04, -1.72, 8.36, 12.06, 108.21, -4.85, -17.17, 13.95, 104.14, -0.81],
-        [19.83, 11.01, 87.33, -2.68, -7.86, 13.74, 104.99, -2.75, -6.57, 12.93, 95.67, -0.26, 6.07, 12.83, 94.68, -1.15],
-        [19.83, 11.01, 87.33, -2.68, -7.86, 13.74, 104.99, -2.75, -6.57, 12.93, 95.67, -0.26, -6.98, 33.92, 57.71, -58.21],
-        [19.83, 11.01, 87.33, -2.68, -7.86, 13.74, 104.99, -2.75, -6.57, 12.93, 95.67, -0.26, -6.98, 33.92, 57.71, -58.21],
-        [19.83, 11.01, 87.33, -2.68, -7.86, 13.74, 104.99, -2.75, -6.57, 12.93, 95.67, -0.26, -6.98, 5.37, 66.88, -13.49],
-        [0.0, 13.59, 105.88, -2.71, -18.72, 8.1, 77.92, -5.18, 11.56, 3.49, 60.37, -18.12, 8.2, 13.85, 100.93, -0.93],
-        [0.0, 13.59, 105.88, -2.71, -18.72, 8.1, 77.92, -5.18, 0.0, 33.98, 58.5, -75.48, 8.2, 13.85, 100.93, -0.93],
-        [0.0, 13.59, 105.88, -2.71, -18.72, 8.1, 77.92, -5.18, 0.0, 33.98, 58.5, -75.48, 8.2, 13.85, 100.93, -0.93],
-        [0.0, 13.59, 105.88, -2.71, -18.72, 8.1, 77.92, -5.18, 0.0, 12.7, 93.49, -2.21, 8.2, 13.85, 100.93, -0.93],
-        [-15.52, 13.72, 99.5, -1.22, -10.61, -1.48, 51.88, -14.64, 15.51, 13.71, 99.33, -1.38, -0.01, 11.95, 109.3, -3.65],
-        [-15.52, 13.72, 99.5, -1.22, -0.01, 33.95, 56.69, -69.26, 15.51, 13.71, 99.33, -1.38, -0.01, 11.95, 109.3, -3.65],
-        [-15.52, 13.72, 99.5, -1.22, -0.01, 33.95, 56.69, -69.26, 15.51, 13.71, 99.33, -1.38, -0.01, 11.95, 109.3, -3.65],
-        [-15.52, 13.72, 99.5, -1.22, -0.01, 10.43, 87.07, -0.36, 15.51, 13.71, 99.33, -1.38, -0.01, 11.95, 109.3, -3.65],
-        [0.01, 13.86, 100.26, -2.6, 0.01, 13.86, 100.18, -2.68, 0.0, 13.86, 100.18, -2.68, -0.03, 13.86, 100.26, -2.6]
-    ]
-    """
-
-    """
-    ground_z = -16, step_len = 8, k = 14, margin = 4, z_up = 5
-    sequence = [
-        [0.0, 27.09, 105.6, -11.49, 0.0, 27.09, 105.6, -11.49, 0.0, 27.09, 105.6, -11.49, 0.0, 27.09, 105.6, -11.49],
-        [-6.14, 14.5, 60.69, -43.82, 13.62, 21.34, 81.18, -30.16, 10.73, 25.01, 109.7, -19.32, -17.72, 27.38, 109.42, -11.96],
-        [8.69, 27.09, 50.34, -44.75, 13.62, 21.34, 81.18, -30.16, 10.73, 25.01, 109.7, -19.32, -17.72, 27.38, 109.42, -11.96],
-        [8.69, 27.09, 50.34, -44.75, 13.62, 21.34, 81.18, -30.16, 10.73, 25.01, 109.7, -19.32, -17.72, 27.38, 109.42, -11.96],
-        [8.69, 6.07, 51.99, -19.08, 13.62, 21.34, 81.18, -30.16, 10.73, 25.01, 109.7, -19.32, -17.72, 27.38, 109.42, -11.96],
-        [20.98, 11.66, 53.01, -48.65, -9.98, 27.6, 109.93, -9.67, -3.91, 21.61, 82.07, -29.53, 8.52, 24.59, 93.09, -21.5],
-        [20.98, 11.66, 53.01, -48.65, -9.98, 27.6, 109.93, -9.67, -3.91, 21.61, 82.07, -29.53, -8.9, 31.06, 52.21, -58.85],
-        [20.98, 11.66, 53.01, -48.65, -9.98, 27.6, 109.93, -9.67, -3.91, 21.61, 82.07, -29.53, -8.9, 31.06, 52.21, -58.85],
-        [20.98, 11.66, 53.01, -48.65, -9.98, 27.6, 109.93, -9.67, -3.91, 21.61, 82.07, -29.53, -8.9, 10.57, 52.8, -36.77],
-        [0.0, 27.2, 108.85, -13.35, -19.7, 10.39, 51.85, -38.53, 14.67, 9.69, 52.8, -31.9, 6.05, 26.98, 104.87, -12.1],
-        [0.0, 27.2, 108.85, -13.35, -19.7, 10.39, 51.85, -38.53, 0.0, 34.44, 60.29, -76.15, 6.05, 26.98, 104.87, -12.1],
-        [0.0, 27.2, 108.85, -13.35, -19.7, 10.39, 51.85, -38.53, 0.0, 24.09, 91.07, -23.01, 6.05, 26.98, 104.87, -12.1],
-        [-15.52, 26.23, 100.63, -15.6, -13.23, 4.93, 51.2, -16.73, 15.52, 26.23, 100.63, -15.6, 0.0, 24.6, 109.39, -20.21],
-        [-15.52, 26.23, 100.63, -15.6, 0.0, 33.95, 56.69, -69.26, 15.52, 26.23, 100.63, -15.6, 0.0, 24.6, 109.39, -20.21],
-        [-15.52, 26.23, 100.63, -15.6, 0.0, 14.92, 61.83, -43.08, 15.52, 26.23, 100.63, -15.6, 0.0, 24.6, 109.39, -20.21],
-        [0.0, 27.09, 105.6, -11.49, 0.0, 27.09, 105.6, -11.49, 0.01, 27.1, 105.69, -11.41, 0.0, 27.09, 105.6, -11.49]
-    ]
-    
-    sequence = [
-        [0.0, 20.4, 102.35, -8.04, 0.0, 20.4, 102.35, -8.04, 0.0, 20.4, 102.35, -8.04, 0.0, 20.4, 102.35, -8.04],
-        [-6.14, 8.86, 57.01, -41.85, 13.62, 15.47, 77.98, -27.49, 10.73, 18.51, 108.1, -13.41, -17.72, 20.7, 108.1, -5.59],
-        [8.69, 23.43, 51.25, -40.18, 13.62, 15.47, 77.98, -27.49, 10.73, 18.51, 108.1, -13.41, -17.72, 20.7, 108.1, -5.59],
-        [8.69, 23.43, 51.25, -40.18, 13.62, 15.47, 77.98, -27.49, 10.73, 18.51, 108.1, -13.41, -17.72, 20.7, 108.1, -5.59],
-        [8.69, 0.84, 51.88, -11.96, 13.62, 15.47, 77.98, -27.49, 10.73, 18.51, 108.1, -13.41, -17.72, 20.7, 108.1, -5.59],
-        [20.98, 7.36, 52.8, -43.56, -9.98, 20.82, 108.59, -3.23, -3.91, 15.72, 78.88, -26.84, 8.52, 18.39, 89.94, -18.46],
-        [20.98, 7.36, 52.8, -43.56, -9.98, 20.82, 108.59, -3.23, -3.91, 15.72, 78.88, -26.84, -8.9, 26.17, 50.1, -57.07],
-        [20.98, 7.36, 52.8, -43.56, -9.98, 20.82, 108.59, -3.23, -3.91, 15.72, 78.88, -26.84, -8.9, 26.17, 50.1, -57.07],
-        [20.98, 7.36, 52.8, -43.56, -9.98, 20.82, 108.59, -3.23, -3.91, 15.72, 78.88, -26.84, -8.9, 5.85, 51.99, -31.86],
-        [0.0, 20.74, 109.54, -4.2, -19.7, 5.74, 51.14, -33.6, 14.67, 4.75, 51.57, -27.18, 6.05, 20.32, 101.64, -8.68],
-        [0.0, 20.74, 109.54, -4.2, -19.7, 5.74, 51.14, -33.6, 0.0, 33.98, 68.02, -65.96, 6.05, 20.32, 101.64, -8.68],
-        [0.0, 20.74, 109.54, -4.2, -19.7, 5.74, 51.14, -33.6, 0.0, 17.96, 87.92, -20.03, 6.05, 20.32, 101.64, -8.68],
-        [-15.52, 19.76, 97.44, -12.32, -13.23, -0.55, 50.57, -9.88, 15.52, 19.76, 97.44, -12.32, 0.0, 18.49, 109.83, -11.66],
-        [-15.52, 19.76, 97.44, -12.32, 0.0, 33.62, 65.24, -58.38, 15.52, 19.76, 97.44, -12.32, 0.0, 18.49, 109.83, -11.66],
-        [-15.52, 19.76, 97.44, -12.32, 0.0, 9.27, 58.2, -41.08, 15.52, 19.76, 97.44, -12.32, 0.0, 18.49, 109.83, -11.66],
-        [0.0, 20.4, 102.35, -8.04, 0.0, 20.4, 102.35, -8.04, 0.01, 20.41, 102.44, -7.96, 0.0, 20.4, 102.35, -8.04]
-    ]
-
-    2 legs 1 move
-    
-    sequence = [
-        [0.0, 20.4, 102.35, -8.04, 0.0, 20.4, 102.35, -8.04, 0.0, 20.4, 102.35, -8.04, 0.0, 20.4, 102.35, -8.04],
-        [0.0, 20.4, 102.35, -8.04, 55.03, 33.69, 77.25, -79.44, 0.0, 20.4, 102.35, -8.04, -20.33, 27.66, 52.4, -42.26],
-        [0.0, 20.4, 102.35, -8.04, 55.03, 18.13, 108.34, -13.8, 0.0, 20.4, 102.35, -8.04, -20.33, 0.3, 50.27, -13.02],
-        [-55.03, 18.13, 108.34, -13.8, -0.02, 20.4, 102.35, -8.04, 20.33, 0.3, 50.27, -13.02, 0.0, 20.4, 102.35, -8.04],
-        [0.02, 34.43, 63.63, -78.81, -0.02, 20.4, 102.35, -8.04, 0.0, 34.43, 63.63, -78.81, 0.0, 20.4, 102.35, -8.04],
-        [0.02, 20.4, 102.35, -8.04, -0.02, 20.4, 102.35, -8.04, 0.0, 20.4, 102.35, -8.04, 0.0, 20.4, 102.35, -8.04]
-    ]
-    """
-    sequence = [
-        [0.0, 20.4, 102.35, -8.04, 0.0, 20.4, 102.35, -8.04, 0.0, 20.4, 102.35, -8.04, 0.0, 20.4, 102.35, -8.04],
-        [0.0, 20.4, 102.35, -8.04, 43.9, 33.86, 85.57, -68.29, 0.0, 20.4, 102.35, -8.04, -18.21, 25.26, 50.16, -51.1],
-        [0.0, 20.4, 102.35, -8.04, 43.9, 18.12, 109.57, -12.54, 0.0, 20.4, 102.35, -8.04, -18.21, 3.94, 50.08, -26.86],
-        [-43.9, 18.12, 109.57, -12.54, 0.0, 20.4, 102.35, -8.04, 18.21, 3.94, 50.08, -26.86, 0.01, 20.4, 102.35, -8.04],
-        [18.21, 26.65, 53.83, -47.82, 0.0, 20.4, 102.35, -8.04, -43.92, 33.86, 85.57, -68.29, 0.01, 20.4, 102.35, -8.04],
-        [18.21, 4.71, 53.12, -23.59, 0.0, 20.4, 102.35, -8.04, -43.92, 18.12, 109.57, -12.54, 0.01, 20.4, 102.35, -8.04],
-        [0.0, 20.39, 102.26, -8.12, -18.21, 3.94, 50.08, -26.86, -0.02, 20.4, 102.35, -8.04, 43.9, 18.12, 109.57, -12.54],
-        [0.0, 20.39, 102.26, -8.12, 43.92, 33.86, 85.57, -68.29, -0.02, 20.4, 102.35, -8.04, -18.21, 25.26, 50.16, -51.1],
-        [0.0, 20.39, 102.26, -8.12, 43.92, 18.12, 109.57, -12.54, -0.02, 20.4, 102.35, -8.04, -18.21, 3.94, 50.08, -26.86],
-        [-43.86, 18.12, 109.49, -12.63, 0.02, 20.4, 102.35, -8.04, 18.2, 3.94, 50.08, -26.86, 0.01, 20.4, 102.35, -8.04],
-        [-0.01, 33.65, 70.43, -69.21, 0.02, 20.4, 102.35, -8.04, -0.02, 33.7, 70.56, -69.14, 0.01, 20.4, 102.35, -8.04],
-        [-0.01, 20.39, 102.26, -8.12, 0.02, 20.4, 102.35, -8.04, -0.02, 20.4, 102.35, -8.04, 0.01, 20.4, 102.35, -8.04]
+        [0.0, 33.77, 107.89, -15.88, 0.0, 33.77, 107.89, -15.88, 0.0, 33.77, 107.89, -15.88, 0.0, 33.77, 107.89, -15.88],
+        [40.08, 31.62, 98.84, -22.78, 40.08, 31.62, 98.84, -22.78, 40.08, 31.62, 98.84, -22.78, 40.08, 31.62, 98.84, -22.78]
     ]
     
     
     for angles in sequence:     
         fnx.set_servo_values_paced(angles)
-    
+    """
